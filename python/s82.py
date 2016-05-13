@@ -50,9 +50,9 @@ class sdssLC(libcarma.basicLC):
 		args = Args()
 		args.viewer = True
 		args.pMin = 1
-		args.pMax = 3
+		args.pMax = 2
 		args.qMin = 0 
-		args.qMax = 2
+		args.qMax = 1
 		args.nsteps = 1000
 		args.nwalkers = 200
 
