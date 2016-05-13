@@ -2,13 +2,16 @@ import math as math
 import numpy as np
 import astropy.io.fits as astfits
 import os as os
+import zmq
 import pdb
 
 import libcarma as libcarma
 
-class sdss_gLC(libcarma.basicLC):
+class sdssLC(libcarma.basicLC):
 
-	def read(self, name, path = None):
+	def read(self, name, path = None, **kwargs):
+		band = kwargs.get('band', 1)
+		
 		self._computedCadenceNum = -1
 		self._tolIR = 1.0e-3
 		self._fracIntrinsicVar = 0.0
