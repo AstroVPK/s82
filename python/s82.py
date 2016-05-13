@@ -11,7 +11,7 @@ class sdssLC(libcarma.basicLC):
 
 	def read(self, name, path = None, **kwargs):
 		band = kwargs.get('band', 1)
-		
+		pdb.set_trace()
 		self._computedCadenceNum = -1
 		self._tolIR = 1.0e-3
 		self._fracIntrinsicVar = 0.0
