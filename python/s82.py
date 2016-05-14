@@ -12,15 +12,28 @@ import copy
 import operator
 import argparse
 import psutil
+import warnings
+import sys
 
-import libcarma as libcarma
-from util.mpl_settings import set_plot_params
-import util.mcmcviz as mcmcviz
-from JacksTools import jools
+try:
+	import libcarma as libcarma
+	from util.mpl_settings import set_plot_params
+	import util.mcmcviz as mcmcviz
+except ImportError:
+	print 'libcarma not found! Try setting up libcarma if you have it installed. Unable to proceed!!'
+	sys.exit(0)
+
+try:
+	from JacksTools import jools
+except ImportError:
+	print 'JacksTools not found! Try pip installing JacksTools. Unable to proceed!!'
+	sys.exit(0)
+
 try:
 	import carmcmc as cmcmc
 except ImportError:
 	carma_pack = False
+	warnings.warn('carma_pack not found. Not using carma_pack!!')
 else:
 	carma_pack = True
 
