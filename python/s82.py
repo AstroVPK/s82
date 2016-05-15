@@ -19,6 +19,7 @@ try:
 	import libcarma as libcarma
 	from util.mpl_settings import set_plot_params
 	import util.mcmcviz as mcmcviz
+	import util.triangle as triangle
 except ImportError:
 	print 'libcarma not found! Try setting up libcarma if you have it installed. Unable to proceed!!'
 	sys.exit(0)
@@ -113,28 +114,59 @@ class sdssLC(libcarma.basicLC):
 		print 'Best model is C-ARMA(%d,%d)'%(self.pBest, self.qBest)
 
 		self.bestTask = self.taskDict['%d %d'%(self.pBest, self.qBest)]
+		self.bestFigTitle = 'Best Model: CARMA(%d,%d); DIC: %+4.3e'%(self.pBest, self.qBest,self.DICDict['%d %d'%(self.pBest, self.qBest)])
+		self.bestLabelList = list()
+		for i in range(self.pBest):
+			self.bestLabelList.append("$a_{%d}$"%(i + 1))
+		for i in range(self.qBest + 1):
+			self.bestLabelList.append("$b_{%d}$"%(i))
+		mcmcviz.vizTriangle(self.pBest, self.qBest, self.bestTask.Chain, labelList = self.bestLabelList, figTitle = self.bestFigTitle)
 
 	def view(self):
 		notDone = True
 		while notDone:
 			whatToView = -1
 			while whatToView < 0 or whatToView > 3:
-				whatToView = int(raw_input('View walkers in C-ARMA coefficients (0) or C-ARMA roots (1) or C-ARMA timescales (2):'))
+				try:
+					whatToView = int(raw_input('View walkers in C-ARMA coefficients (0) or C-ARMA roots (1) or C-ARMA timescales (2):'))
+				except ValueError:
+					print 'Bad input: integer required!'
 			pView = -1
 			while pView < 1 or pView > self.pMax:
-				pView = int(raw_input('C-AR model order:'))
+				try:
+					pView = int(raw_input('C-AR model order:'))
+				except ValueError:
+					print 'Bad input: integer required!'
 			qView = -1
 			while qView < 0 or qView >= pView:
-				qView = int(raw_input('C-MA model order:'))
-	
-			dim1 = -1
-			while dim1 < 0 or dim1 > pView + qView + 1:
-				dim1 = int(raw_input('1st Dimension to view:'))
-			dim2 = -1
-			while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
-				dim2 = int(raw_input('2nd Dimension to view:'))
-	
+				try:
+					qView = int(raw_input('C-MA model order:'))
+				except ValueError:
+					print 'Bad input: integer required!'
+
 			if whatToView == 0:
+				figTitle = 'CARMA(%d,%d); DIC: %+4.3e'%(pView, qView,self.DICDict['%d %d'%(pView, qView)])
+				labelList = list()
+				dimCtr = 0
+				for i in range(pView):
+					labelList.append(r'$a_{%d}$: $\mathrm{dim}%d$'%(i + 1, dimCtr))
+					dimCtr += 1
+				for i in range(qView + 1):
+					labelList.append(r'$b_{%d}$: $\mathrm{dim}%d$'%(i, dimCtr))
+					dimCtr += 1
+				mcmcviz.vizTriangle(pView, qView, self.taskDict['%d %d'%(pView, qView)].Chain, labelList = labelList, figTitle = figTitle)
+				dim1 = -1
+				while dim1 < 0 or dim1 > pView + qView + 1:
+					try:
+						dim1 = int(raw_input('1st Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
+				dim2 = -1
+				while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
+					try:
+						dim2 = int(raw_input('2nd Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
 				if dim1 < pView:
 					dim1Name = r'$a_{%d}$'%(dim1)
 				if dim1 >= pView and dim1 < pView + qView + 1:
@@ -144,8 +176,32 @@ class sdssLC(libcarma.basicLC):
 				if dim2 >= pView and dim2 < pView + qView + 1:
 					dim2Name = r'$b_{%d}$'%(dim2 - pView)
 				res = mcmcviz.vizWalkers(self.taskDict['%d %d'%(pView, qView)].Chain, self.taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-	
+
 			elif whatToView == 1:
+				figTitle = 'CARMA(%d,%d); DIC: %+4.3e'%(pView, qView,self.DICDict['%d %d'%(pView, qView)])
+				labelList = list()
+				dimCtr = 0
+				for i in range(pView):
+					labelList.append(r'$r_{%d}$: $\mathrm{dim}%d$'%(i, dimCtr))
+					dimCtr += 1
+				for i in range(qView):
+					labelList.append(r'$m_{%d}$: $\mathrm{dim}%d$'%(i, dimCtr))
+					dimCtr += 1
+				labelList.append(r'$\mathrm{Amp.}$: $\mathrm{dim}%d$'%(dimCtr))
+				dimCtr += 1
+				mcmcviz.vizTriangle(pView, qView, self.taskDict['%d %d'%(pView, qView)].rootChain, labelList = labelList, figTitle = figTitle)
+				dim1 = -1
+				while dim1 < 0 or dim1 > pView + qView + 1:
+					try:
+						dim1 = int(raw_input('1st Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
+				dim2 = -1
+				while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
+					try:
+						dim2 = int(raw_input('2nd Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
 				if dim1 < pView:
 					dim1Name = r'$r_{%d}$'%(dim1)
 				if dim1 >= pView and dim1 < pView + qView:
@@ -159,8 +215,29 @@ class sdssLC(libcarma.basicLC):
 				if dim2 == pView + qView:
 					dim2Name = r'$\mathrm{Amp.}$'
 				res = mcmcviz.vizWalkers(self.taskDict['%d %d'%(pView, qView)].rootChain, self.taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-	
+
 			else:
+				figTitle = 'CARMA(%d,%d); DIC: %+4.3e'%(pView, qView,self.DICDict['%d %d'%(pView, qView)])
+				labelList = list()
+				dimCtr = 0
+				for i in range(pView + qView):
+					labelList.append(r'$\tau_{%d}$: $\mathrm{dim}%d$'%(i, dimCtr))
+					dimCtr += 1
+				labelList.append(r'$\mathrm{Amp.}$: $\mathrm{dim}%d$'%(dimCtr))
+				dimCtr += 1
+				mcmcviz.vizTriangle(pView, qView, self.taskDict['%d %d'%(pView, qView)].timescaleChain, labelList = labelList, figTitle = figTitle)
+				dim1 = -1
+				while dim1 < 0 or dim1 > pView + qView + 1:
+					try:
+						dim1 = int(raw_input('1st Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
+				dim2 = -1
+				while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
+					try:
+						dim2 = int(raw_input('2nd Dimension to view:'))
+					except ValueError:
+						print 'Bad input: integer required!'
 				if dim1 < pView + qView:
 					dim1Name = r'$\tau_{%d}$'%(dim1)
 				if dim1 == pView + qView:
@@ -170,7 +247,7 @@ class sdssLC(libcarma.basicLC):
 				if dim2 == pView + qView:
 					dim2Name = r'$\mathrm{Amp.}$'
 				res = mcmcviz.vizWalkers(self.taskDict['%d %d'%(pView, qView)].timescaleChain, self.taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-	
+
 			var = str(raw_input('Do you wish to view any more MCMC walkers? (y/n):')).lower()
 			if var == 'n':
 				notDone = False
