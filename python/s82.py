@@ -282,7 +282,10 @@ class sdssLC(libcarma.basicLC):
 		self.PSim = np.require(np.zeros(self._pSim*self._pSim), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
 		self.XComp = np.require(np.zeros(self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
 		self.PComp = np.require(np.zeros(self._pComp*self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
-		self._name, self.z, data = self._getRandLC()
+		if name == '':
+			self._name, self.z, data = self._getRandLC()
+		else:
+			self._name, self.z, data = self._getLC(name)
 		t = data['mjd_%s' % band]
 		y = data['calMag_%s' % band]
 		yerr = data['calMagErr_%s' % band]
