@@ -274,12 +274,14 @@ class sdssLC(libcarma.basicLC):
 		self._maxSigma = 2.0
 		self._minTimescale = 2.0
 		self._maxTimescale = 0.5
-		self._p = 0
-		self._q = 0
-		self.XSim = np.require(np.zeros(self._p), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
-		self.PSim = np.require(np.zeros(self._p*self._p), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
-		self.XComp = np.require(np.zeros(self._p), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
-		self.PComp = np.require(np.zeros(self._p*self._p), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
+		self._pSim = 0
+		self._qSim = 0
+		self._pComp = 0
+		self._qComp = 0
+		self.XSim = np.require(np.zeros(self._pSim), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
+		self.PSim = np.require(np.zeros(self._pSim*self._pSim), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
+		self.XComp = np.require(np.zeros(self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
+		self.PComp = np.require(np.zeros(self._pComp*self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
 		self._name, self.z, data = self._getRandLC()
 		t = data['mjd_%s' % band]
 		y = data['calMag_%s' % band]
@@ -309,6 +311,8 @@ class sdssLC(libcarma.basicLC):
 		self._stderr = np.std(self.yerr)
 		self._T = float(self.t[-1] - self.t[0])
 		self._dt = float(np.nanmin(self.t[1:] - self.t[:-1]))
+		self._dtSmooth = 0.0
+		self._isRegular = False
 		self.colorDict = {'u': '#6a3d9a', 'g': '#33a02c', 'r': '#ff7f00', 'i': '#e31a1c', 'z': '#b15928'}
 
 	def write(self):
