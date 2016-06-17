@@ -82,10 +82,10 @@ if (args.qMin < 0):
 sdssLC_g = s82.sdssLC(name = '', band = 'g')
 sdssLC_r = s82.sdssLC(name = sdssLC_g.name, band = 'r') # Make this work
 sdssLC_i = s82.sdssLC(name = sdssLC_g.name, band = 'i') # make this work
-pdb.set_trace()
-sdssLC.minTimescale = args.minTimescale
-sdssLC.maxTimescale = args.maxTimescale
-sdssLC.maxSigma = args.maxSigma
+
+sdssLC_g.minTimescale = args.minTimescale
+sdssLC_g.maxTimescale = args.maxTimescale
+sdssLC_g.maxSigma = args.maxSigma
 
 if args.plot:
 	plt.figure(0, figsize = (fwid, fhgt))
