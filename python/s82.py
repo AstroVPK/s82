@@ -258,11 +258,19 @@ class sdssLC(libcarma.basicLC):
 
 	def plot(self, doShow = False):
 		plt.figure(-1, figsize = (fwid, fhgt))
-		plt.errorbar(self.t, self.y, self.yerr, label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = '.', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+		if np.sum(self.x) != 0.0:
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', zorder = 0)
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', marker = 'o', markeredgecolor = 'none', zorder = 0)
+		if np.sum(self.y) != 0.0:
+			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+		if self.isSmoothed:
+			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#4daf4a', marker = 'o', markeredgecolor = 'none', zorder = -5)
+			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#4daf4a', zorder = -5)
+			plt.fill_between(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) - self.xerrSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) + self.xerrSmooth, facecolor = '#ccebc5', alpha = 0.5, zorder = -5)
 		plt.xlabel(self.xunit)
 		plt.ylabel(self.yunit)
 		plt.title(r'Light curve')
-		plt.legend(loc = 3)
+		plt.legend()
 		if doShow:
 			plt.show(False)
 
@@ -357,6 +365,7 @@ class sdssLC(libcarma.basicLC):
 		self._stderr = np.std(self.yerr)
 		self._T = float(self.t[-1] - self.t[0])
 		self._dt = float(np.nanmin(self.t[1:] - self.t[:-1]))
+		self._isSmoothed = False
 		self._dtSmooth = 0.0
 		self._isRegular = False
 		self.colorDict = {'u': '#6a3d9a', 'g': '#33a02c', 'r': '#ff7f00', 'i': '#e31a1c', 'z': '#b15928'}

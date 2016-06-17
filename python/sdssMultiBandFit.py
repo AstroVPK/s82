@@ -39,7 +39,7 @@ set_plot_params(useTex = True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-pwd', '--pwd', type = str, default = '/home/vpk24/Documents', help = r'Path to working directory')
-parser.add_argument('-n', '--name', type = str, default = 'LightCurveSDSS_1.csv', help = r'SDSS Filename')
+parser.add_argument('-n', '--name', type = str, default = 'random', help = r'SDSS Filename')
 parser.add_argument('-libcarmaChain', '--lC', type = str, default = 'libcarmaChain', help = r'libcarma Chain Filename')
 parser.add_argument('-cmcmcChain', '--cC', type = str, default = 'cmcmcChain', help = r'carma_pack Chain Filename')
 parser.add_argument('-nsteps', '--nsteps', type = int, default = 250, help = r'Number of steps per walker')
@@ -80,122 +80,139 @@ if (args.qMin < 0):
 	raise ValueError('qMin must be greater than or equal to 0')
 
 sdssLC = {}
-sdssLC['u'] = s82.sdssLC(name = 'random', band = 'u')
+sdssLC['u'] = s82.sdssLC(name = args.name, band = 'u')
 sdssLC['g'] = s82.sdssLC(name = sdssLC['u'].name, band = 'g')
 sdssLC['r'] = s82.sdssLC(name = sdssLC['u'].name, band = 'r')
 sdssLC['i'] = s82.sdssLC(name = sdssLC['u'].name, band = 'i')
 sdssLC['z'] = s82.sdssLC(name = sdssLC['u'].name, band = 'z')
 
+print 'Git SDSS S82 LC %s'%(sdssLC['u'].name)
+print 'Plotting light curve and structure functions for %s'%(sdssLC['u'].name)
+
 for band in 'ugriz':
 	lc = sdssLC[band]
 	lc.plot()
 	lc.plotsf()
-	lc.plotacf()
+	lc.minTimescale = args.minTimescale
+	lc.maxTimescale = args.maxTimescale
+	lc.maxSigma = args.maxSigma
 plt.show()
-
-sdssLC_g.minTimescale = args.minTimescale
-sdssLC_g.maxTimescale = args.maxTimescale
-sdssLC_g.maxSigma = args.maxSigma
-
-if args.plot:
-	plt.figure(0, figsize = (fwid, fhgt))
-	plt.errorbar(sdssLC.t, sdssLC.y, sdssLc.yerr, label = r'%s (g-band)'%(sdssLC.name), fmt = '.', capsize = 0, color = '#2ca25f', markeredgecolor = 'none', zorder = 10)
-	plt.xlabel('$t$ (MJD)')
-	plt.ylabel('$F$ (Jy)')
-	plt.title(r'Light curve')
-	plt.legend()
-	plt.show(False)
 
 taskDict = dict()
 DICDict= dict()
 totalTime = 0.0
 
-for p in xrange(args.pMin, args.pMax + 1):
-	for q in xrange(args.qMin, min(p, args.qMax + 1)):
-		nt = libcarma.basicTask(p, q, nwalkers = args.nwalkers, nsteps = args.nsteps)
+for band in 'ugriz':
+	lc = sdssLC[band]
+	print '\nBand: %s\n'%(band)
+	for p in xrange(args.pMin, args.pMax + 1):
+		for q in xrange(args.qMin, min(p, args.qMax + 1)):
+			nt = libcarma.basicTask(p, q, nwalkers = args.nwalkers, nsteps = args.nsteps)
+	
+			print 'Starting libcarma fitting for p = %d and q = %d...'%(p, q)
+			startLCARMA = time.time()
+			nt.fit(sdssLC[band])
+			stopLCARMA = time.time()
+			timeLCARMA = stopLCARMA - startLCARMA
+			print 'libcarma took %4.3f s = %4.3f min = %4.3f hrs'%(timeLCARMA, timeLCARMA/60.0, timeLCARMA/3600.0)
+			totalTime += timeLCARMA
+	
+			Deviances = copy.copy(nt.LnPosterior[:,args.nsteps/2:]).reshape((-1))
+			DIC = 0.5*math.pow(np.nanstd(-2.0*Deviances),2.0) + np.nanmean(-2.0*Deviances)
+			print 'C-ARMA(%d,%d) DIC: %+4.3e'%(p, q, DIC)
+			DICDict['%d %d'%(p, q)] = DIC
+			taskDict['%d %d'%(p, q)] = nt
+	print 'Total time taken by libcarma is %4.3f s = %4.3f min = %4.3f hrs'%(totalTime, totalTime/60.0, totalTime/3600.0)
 
-		print 'Starting libcarma fitting for p = %d and q = %d...'%(p, q)
-		startLCARMA = time.time()
-		nt.fit(sdssLC)
-		stopLCARMA = time.time()
-		timeLCARMA = stopLCARMA - startLCARMA
-		print 'libcarma took %4.3f s = %4.3f min = %4.3f hrs'%(timeLCARMA, timeLCARMA/60.0, timeLCARMA/3600.0)
-		totalTime += timeLCARMA
+	sortedDICVals = sorted(DICDict.items(), key = operator.itemgetter(1))
+	pBest = int(sortedDICVals[0][0].split()[0])
+	qBest = int(sortedDICVals[0][0].split()[1])
+	print 'Best model is C-ARMA(%d,%d)'%(pBest, qBest)
 
-		Deviances = copy.copy(nt.LnPosterior[:,args.nsteps/2:]).reshape((-1))
-		DIC = 0.5*math.pow(np.nanstd(-2.0*Deviances),2.0) + np.nanmean(-2.0*Deviances)
-		print 'C-ARMA(%d,%d) DIC: %+4.3e'%(p, q, DIC)
-		DICDict['%d %d'%(p, q)] = DIC
-		taskDict['%d %d'%(p, q)] = nt
-print 'Total time taken by libcarma is %4.3f s = %4.3f min = %4.3f hrs'%(totalTime, totalTime/60.0, totalTime/3600.0)
+	bestTask = taskDict['%d %d'%(pBest, qBest)]
 
-sortedDICVals = sorted(DICDict.items(), key = operator.itemgetter(1))
-pBest = int(sortedDICVals[0][0].split()[0])
-qBest = int(sortedDICVals[0][0].split()[1])
-print 'Best model is C-ARMA(%d,%d)'%(pBest, qBest)
+	if args.viewer:
+		notDone = True
+		while notDone:
+			whatToView = -1
+			while whatToView < 0 or whatToView > 3:
+				whatToView = int(raw_input('View walkers in C-ARMA coefficients (0) or C-ARMA roots (1) or C-ARMA timescales (2):'))
+			pView = -1
+			while pView < 1 or pView > args.pMax:
+				pView = int(raw_input('C-AR model order:'))
+			qView = -1
+			while qView < 0 or qView >= pView:
+				qView = int(raw_input('C-MA model order:'))
 
-bestTask = taskDict['%d %d'%(pBest, qBest)]
+			dim1 = -1
+			while dim1 < 0 or dim1 > pView + qView + 1:
+				dim1 = int(raw_input('1st Dimension to view:'))
+			dim2 = -1
+			while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
+				dim2 = int(raw_input('2nd Dimension to view:'))
 
-if args.viewer:
-	notDone = True
-	while notDone:
-		whatToView = -1
-		while whatToView < 0 or whatToView > 3:
-			whatToView = int(raw_input('View walkers in C-ARMA coefficients (0) or C-ARMA roots (1) or C-ARMA timescales (2):'))
-		pView = -1
-		while pView < 1 or pView > args.pMax:
-			pView = int(raw_input('C-AR model order:'))
-		qView = -1
-		while qView < 0 or qView >= pView:
-			qView = int(raw_input('C-MA model order:'))
+			if whatToView == 0:
+				if dim1 < pView:
+					dim1Name = r'$a_{%d}$'%(dim1)
+				if dim1 >= pView and dim1 < pView + qView + 1:
+					dim1Name = r'$b_{%d}$'%(dim1 - pView)
+				if dim2 < pView:
+					dim2Name = r'$a_{%d}$'%(dim2)
+				if dim2 >= pView and dim2 < pView + qView + 1:
+					dim2Name = r'$b_{%d}$'%(dim2 - pView)
+				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].Chain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
 
-		dim1 = -1
-		while dim1 < 0 or dim1 > pView + qView + 1:
-			dim1 = int(raw_input('1st Dimension to view:'))
-		dim2 = -1
-		while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
-			dim2 = int(raw_input('2nd Dimension to view:'))
+			elif whatToView == 1:
+				if dim1 < pView:
+					dim1Name = r'$r_{%d}$'%(dim1)
+				if dim1 >= pView and dim1 < pView + qView:
+					dim1Name = r'$m_{%d}$'%(dim1 - pView)
+				if dim1 == pView + qView:
+					dim1Name = r'$\mathrm{Amp.}$'
+				if dim2 < pView:
+					dim2Name = r'$r_{%d}$'%(dim2)
+				if dim2 >= pView and dim2 < pView + qView:
+					dim2Name = r'$m_{%d}$'%(dim2 - pView)
+				if dim2 == pView + qView:
+					dim2Name = r'$\mathrm{Amp.}$'
+				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].rootChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
 
-		if whatToView == 0:
-			if dim1 < pView:
-				dim1Name = r'$a_{%d}$'%(dim1)
-			if dim1 >= pView and dim1 < pView + qView + 1:
-				dim1Name = r'$b_{%d}$'%(dim1 - pView)
-			if dim2 < pView:
-				dim2Name = r'$a_{%d}$'%(dim2)
-			if dim2 >= pView and dim2 < pView + qView + 1:
-				dim2Name = r'$b_{%d}$'%(dim2 - pView)
-			res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].Chain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
+			else:
+				if dim1 < pView + qView:
+					dim1Name = r'$\tau_{%d}$'%(dim1)
+				if dim1 == pView + qView:
+					dim1Name = r'$\mathrm{Amp.}$'
+				if dim2 < pView + qView:
+					dim2Name = r'$\tau_{%d}$'%(dim2)
+				if dim2 == pView + qView:
+					dim2Name = r'$\mathrm{Amp.}$'
+				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].timescaleChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
 
-		elif whatToView == 1:
-			if dim1 < pView:
-				dim1Name = r'$r_{%d}$'%(dim1)
-			if dim1 >= pView and dim1 < pView + qView:
-				dim1Name = r'$m_{%d}$'%(dim1 - pView)
-			if dim1 == pView + qView:
-				dim1Name = r'$\mathrm{Amp.}$'
-			if dim2 < pView:
-				dim2Name = r'$r_{%d}$'%(dim2)
-			if dim2 >= pView and dim2 < pView + qView:
-				dim2Name = r'$m_{%d}$'%(dim2 - pView)
-			if dim2 == pView + qView:
-				dim2Name = r'$\mathrm{Amp.}$'
-			res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].rootChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
+			var = str(raw_input('Do you wish to view any more MCMC walkers? (y/n):')).lower()
+			if var == 'n':
+				notDone = False
 
-		else:
-			if dim1 < pView + qView:
-				dim1Name = r'$\tau_{%d}$'%(dim1)
-			if dim1 == pView + qView:
-				dim1Name = r'$\mathrm{Amp.}$'
-			if dim2 < pView + qView:
-				dim2Name = r'$\tau_{%d}$'%(dim2)
-			if dim2 == pView + qView:
-				dim2Name = r'$\mathrm{Amp.}$'
-			res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].timescaleChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
+	loc0 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[0][0]
+	loc1 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[1][0]
 
-		var = str(raw_input('Do you wish to view any more MCMC walkers? (y/n):')).lower()
-		if var == 'n':
-			notDone = False
+	lbls = list()
+	for i in xrange(pBest):
+		lbls.append(r'$\tau_{AR, %d}$ ($d$)'%(i + 1))
+	for i in xrange(qBest):
+		lbls.append(r'$\tau_{MA, %d} ($d$)$'%(i))
+	lbls.append(r'Amp. ($F$ $d^{%2.1f}$)'%(qBest + 0.5 - pBest))
+	try:
+		mcmcviz.vizTriangle(pBest, qBest, bestTask.timescaleChain, labelList = lbls, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
+	except ValueError:
+		pass
+
+	Theta = bestTask.Chain[:, loc0, loc1]
+	nt = libcarma.basicTask(pBest, qBest)
+	nt.set(lc.dt, Theta)
+	nt.smooth(lc)
+	lc.plot()
+	bestTask.plotsf(lc)
+	plt.show()
 
 if args.stop:
 	pdb.set_trace()
