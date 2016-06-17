@@ -13,23 +13,23 @@ class Server:
 		self.socket = self.context.socket(zmq.REP)
 		self.socket.bind('tcp://*:5001')
 
-		self.commands = {'getLC':self.getLC, 'randLC':self.randLC, 'getIDList':self.getIDList}
+		self.commands = {'getLC':self.getLC, 'randLC':self.randLC}
 	
 		print "Server Started"
 
-	def getLC(self, ID):
+	def getLC(self, *args):
 
+		ID = args[0]
 		fname = os.path.join(FileManager.LCDir, FileManager.getFileName(ID))
 		data = jio.load(fname, delimiter = ',', headed = True)
 		z = FileManager.getRedshift(ID)
 		package = (fname, z, data)	
 		self.socket.send_pyobj(package)
 		print "Sent %s" % FileManager.getFileName(ID)
-		
+
 	def getIDList(self, *args):
 
-		package = FileManager.getIDList(FileManager.getLCList())
-		self.socket.send_pyobj(package)
+		pass	
 
 	def randLC(self, *args):
 
@@ -39,12 +39,16 @@ class Server:
 	def start(self):
 
 		while True:
-			message = self.socket.recv().split('\n')
-			command = message[0]
-			args = message[1].split()
-			print "GOT:",command
-			print "   ARGS:", args
-			self.commands[command](args)
+			try:
+				message = self.socket.recv().split('\n')
+				command = message[0]
+				args = message[1].split()
+				print "GOT:",command
+				print "   ARGS:", args
+				self.commands[command](*args)
+			except Exception as e:
+				print "Failed"
+				print e
 
 class FileManager:
 
