@@ -263,6 +263,7 @@ class sdssLC(libcarma.basicLC):
 			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#000000', marker = 'o', markeredgecolor = 'none', zorder = 0)
 		if np.sum(self.y) != 0.0:
 			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+			plt.xlim(self.t[0], self.t[-1])
 		if self.isSmoothed:
 			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], marker = 'o', markeredgecolor = 'none', zorder = -5)
 			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], zorder = -5)
@@ -281,6 +282,7 @@ class sdssLC(libcarma.basicLC):
 			lagsE, acvfE, acvferrE = self.acvf()
 			if np.sum(acvfE) != 0.0:
 				plt.errorbar(lagsE[1:], acvfE[1:], acvferrE[1:], label = r'%s (SDSS %s-band) obs. Autocovariance Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+				plt.xlim(lagsE[1], lagsE[-1])
 		plt.xlabel(r'$\delta t$')
 		plt.ylabel(r'$ACVF$')
 		plt.title(r'AutoCovariance Function')
@@ -295,6 +297,7 @@ class sdssLC(libcarma.basicLC):
 			lagsE, acfE, acferrE = self.acf()
 			if np.sum(acfE) != 0.0:
 				plt.errorbar(lagsE[1:], acfE[1:], acferrE[1:], label = r'%s (SDSS %s-band) obs. Autocorrelation Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+				plt.xlim(lagsE[1], lagsE[-1])
 		plt.xlabel(r'$\delta t$')
 		plt.ylabel(r'$ACF$')
 		plt.title(r'AutoCorrelation Function')
@@ -310,6 +313,7 @@ class sdssLC(libcarma.basicLC):
 			lagsE, sfE, sferrE = self.sf()
 			if np.sum(sfE) != 0.0:
 				plt.errorbar(lagsE[1:], sfE[1:], sferrE[1:], label = r'%s (SDSS %s-band) obs. Structure Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+				plt.xlim(lagsE[1], lagsE[-1])
 		plt.xlabel(r'$\delta t$')
 		plt.ylabel(r'$\log SF$')
 		plt.title(r'Structure Function')

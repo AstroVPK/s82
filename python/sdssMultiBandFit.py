@@ -109,7 +109,7 @@ if args.savefig or args.show:
 			lc = sdssLC[band]
 			lc.plot()
 		if args.savefig:
-			plt.savefig(figName)
+			plt.savefig(figName, dpi = 1000)
 		if args.show:
 			plt.show()
 		plt.clf()
@@ -121,7 +121,7 @@ if args.savefig or args.show:
 			lc = sdssLC[band]
 			lc.plotsf()
 		if args.savefig:
-			plt.savefig(figName)
+			plt.savefig(figName, dpi = 1000)
 		if args.show:
 			plt.show()
 		plt.clf()
@@ -239,7 +239,7 @@ for band in bandSeq:
 			figName = os.path.join(dataDir,'%s_%s_Tau.jpg'%(lc.name, lc.band))
 			if not os.path.isfile(figName):
 				if args.savefig:
-					plt.savefig(figName)
+					plt.savefig(figName, dpi = 1000)
 				if args.show:
 					plt.show()
 				plt.clf()
@@ -258,12 +258,13 @@ for band in bandSeq:
 			figName = os.path.join(dataDir,'%s_%s_Theta.jpg'%(lc.name, lc.band))
 			if not os.path.isfile(figName):
 				if args.savefig:
-					plt.savefig(figName)
+					plt.savefig(figName, dpi = 1000)
 				if args.show:
 					plt.show()
 				plt.clf()
 
 	if args.savefig or args.show:
+		print 'Plotting the %s-band light curve of %s'%(lc.band, lc.name)
 		figName = os.path.join(dataDir,'%s_%s_LC.jpg'%(lc.name, lc.band))
 		if not os.path.isfile(figName):
 			Theta = bestTask.Chain[:, loc0, loc1]
@@ -272,16 +273,17 @@ for band in bandSeq:
 			nt.smooth(lc)
 			lc.plot()
 			if args.savefig:
-				plt.savefig(figName)
+				plt.savefig(figName, dpi = 1000)
 			if args.show:
 				plt.show()
 			plt.clf()
 
+		print 'Plotting the structure function of the %s-band light curve of %s'%(lc.band, lc.name)
 		figName = os.path.join(dataDir,'%s_%s_SF.jpg'%(lc.name, lc.band))
 		if not os.path.isfile(figName):
 			bestTask.plotsf(lc)
 			if args.savefig:
-				plt.savefig(figName)
+				plt.savefig(figName, dpi = 1000)
 			if args.show:
 				plt.show()
 			plt.clf()
