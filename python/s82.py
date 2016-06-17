@@ -256,15 +256,58 @@ class sdssLC(libcarma.basicLC):
 	def newRandLC(self, band):
 		return sdssLC(name = '', band = band)
 
-	def plot(self):
+	def plot(self, doShow = False):
 		plt.figure(-1, figsize = (fwid, fhgt))
 		plt.errorbar(self.t, self.y, self.yerr, label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = '.', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 		plt.xlabel(self.xunit)
 		plt.ylabel(self.yunit)
 		plt.title(r'Light curve')
-		plt.legend()
-		plt.show(False)
-		plt.show()
+		plt.legend(loc = 3)
+		if doShow:
+			plt.show(False)
+
+	def plotacvf(self, doShow = False):
+		plt.figure(-2, figsize = (fwid, fhgt))
+		plt.plot(0.0, 0.0)
+		if np.sum(self.y) != 0.0:
+			lagsE, acvfE, acvferrE = self.acvf()
+			if np.sum(acvfE) != 0.0:
+				plt.errorbar(lagsE[1:], acvfE[1:], acvferrE[1:], label = r'%s (SDSS %s-band) obs. Autocovariance Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+		plt.xlabel(r'$\delta t$')
+		plt.ylabel(r'$ACVF$')
+		plt.title(r'AutoCovariance Function')
+		plt.legend(loc = 3)
+		if doShow:
+			plt.show(False)
+
+	def plotacf(self, doShow = False):
+		plt.figure(-3, figsize = (fwid, fhgt))
+		plt.plot(0.0, 0.0)
+		if np.sum(self.y) != 0.0:
+			lagsE, acfE, acferrE = self.acf()
+			if np.sum(acfE) != 0.0:
+				plt.errorbar(lagsE[1:], acfE[1:], acferrE[1:], label = r'%s (SDSS %s-band) obs. Autocorrelation Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+		plt.xlabel(r'$\delta t$')
+		plt.ylabel(r'$ACF$')
+		plt.title(r'AutoCorrelation Function')
+		plt.legend(loc = 3)
+		plt.ylim(-1.0, 1.0)
+		if doShow:
+			plt.show(False)
+
+	def plotsf(self, doShow = False):
+		plt.figure(-4, figsize = (fwid, fhgt))
+		plt.loglog(1.0, 1.0)
+		if np.sum(self.y) != 0.0:
+			lagsE, sfE, sferrE = self.sf()
+			if np.sum(sfE) != 0.0:
+				plt.errorbar(lagsE[1:], sfE[1:], sferrE[1:], label = r'%s (SDSS %s-band) obs. Structure Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+		plt.xlabel(r'$\delta t$')
+		plt.ylabel(r'$\log SF$')
+		plt.title(r'Structure Function')
+		plt.legend(loc = 2)
+		if doShow:
+			plt.show(False)
 
 	def read(self, name, band, pwd = None, **kwargs):
 		self._computedCadenceNum = -1
@@ -282,7 +325,7 @@ class sdssLC(libcarma.basicLC):
 		self.PSim = np.require(np.zeros(self._pSim*self._pSim), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
 		self.XComp = np.require(np.zeros(self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## State of light curve at last timestamp
 		self.PComp = np.require(np.zeros(self._pComp*self._pComp), requirements=['F', 'A', 'W', 'O', 'E']) ## Uncertainty in state of light curve at last timestamp.
-		if name == '':
+		if name.lower() in ['random', 'rand', 'r', 'rnd', 'any', 'none', '']:
 			self._name, self.z, data = self._getRandLC()
 		else:
 			self._name, self.z, data = self._getLC(name)

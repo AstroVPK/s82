@@ -79,9 +79,19 @@ if (args.pMin < 1):
 if (args.qMin < 0):
 	raise ValueError('qMin must be greater than or equal to 0')
 
-sdssLC_g = s82.sdssLC(name = '', band = 'g')
-sdssLC_r = s82.sdssLC(name = sdssLC_g.name, band = 'r') # Make this work
-sdssLC_i = s82.sdssLC(name = sdssLC_g.name, band = 'i') # make this work
+sdssLC = {}
+sdssLC['u'] = s82.sdssLC(name = 'random', band = 'u')
+sdssLC['g'] = s82.sdssLC(name = sdssLC['u'].name, band = 'g')
+sdssLC['r'] = s82.sdssLC(name = sdssLC['u'].name, band = 'r')
+sdssLC['i'] = s82.sdssLC(name = sdssLC['u'].name, band = 'i')
+sdssLC['z'] = s82.sdssLC(name = sdssLC['u'].name, band = 'z')
+
+for band in 'ugriz':
+	lc = sdssLC[band]
+	lc.plot()
+	lc.plotsf()
+	lc.plotacf()
+plt.show()
 
 sdssLC_g.minTimescale = args.minTimescale
 sdssLC_g.maxTimescale = args.maxTimescale
