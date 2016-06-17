@@ -56,7 +56,7 @@ parser.add_argument('-maxT', '--maxTimescale', type = float, default = 0.5, help
 parser.add_argument('-maxS', '--maxSigma', type = float, default = 2.0, help = r'Maximum allowed sigma = maxSigma*var(lc)')
 parser.add_argument('--stop', dest = 'stop', action = 'store_true', help = r'Stop at end?')
 parser.add_argument('--no-stop', dest = 'stop', action = 'store_false', help = r'Do not stop at end?')
-parser.set_defaults(stop = True)
+parser.set_defaults(stop = False)
 parser.add_argument('--save', dest = 'save', action = 'store_true', help = r'Save files?')
 parser.add_argument('--no-save', dest = 'save', action = 'store_false', help = r'Do not save files?')
 parser.set_defaults(save = False)
@@ -66,6 +66,12 @@ parser.set_defaults(log10 = False)
 parser.add_argument('--viewer', dest = 'viewer', action = 'store_true', help = r'Visualize MCMC walkers')
 parser.add_argument('--no-viewer', dest = 'viewer', action = 'store_false', help = r'Do not visualize MCMC walkers')
 parser.set_defaults(viewer = False)
+parser.add_argument('--show', dest = 'show', action = 'store_true', help = r'Show figures?')
+parser.add_argument('--no-show', dest = 'show', action = 'store_false', help = r'Do not show figures')
+parser.set_defaults(show = False)
+parser.add_argument('--savefig', dest = 'savefig', action = 'store_true', help = r'Save figures?')
+parser.add_argument('--no-savefig', dest = 'savefig', action = 'store_false', help = r'Do not save figures')
+parser.set_defaults(savefig = True)
 args = parser.parse_args()
 
 if (args.qMax >= args.pMax):
@@ -79,30 +85,52 @@ if (args.pMin < 1):
 if (args.qMin < 0):
 	raise ValueError('qMin must be greater than or equal to 0')
 
+if args.savefig:
+	dataDir = os.environ['S82DATADIR']
+
+bandSeq = 'gri'#'uzgri'
 sdssLC = {}
-sdssLC['u'] = s82.sdssLC(name = args.name, band = 'u')
-sdssLC['g'] = s82.sdssLC(name = sdssLC['u'].name, band = 'g')
-sdssLC['r'] = s82.sdssLC(name = sdssLC['u'].name, band = 'r')
-sdssLC['i'] = s82.sdssLC(name = sdssLC['u'].name, band = 'i')
-sdssLC['z'] = s82.sdssLC(name = sdssLC['u'].name, band = 'z')
-
-print 'Git SDSS S82 LC %s'%(sdssLC['u'].name)
-print 'Plotting light curve and structure functions for %s'%(sdssLC['u'].name)
-
-for band in 'ugriz':
+sdssLC['g'] = s82.sdssLC(name = args.name, band = 'g')
+sdssLC['i'] = s82.sdssLC(name = sdssLC['g'].name, band = 'i')
+sdssLC['r'] = s82.sdssLC(name = sdssLC['g'].name, band = 'r')
+#sdssLC['u'] = s82.sdssLC(name = sdssLC['g'].name, band = 'u')
+#sdssLC['z'] = s82.sdssLC(name = sdssLC['g'].name, band = 'z')
+for band in bandSeq:
 	lc = sdssLC[band]
-	lc.plot()
-	lc.plotsf()
 	lc.minTimescale = args.minTimescale
 	lc.maxTimescale = args.maxTimescale
 	lc.maxSigma = args.maxSigma
-plt.show()
+
+if args.savefig or args.show:
+	print 'Plotting light curve for %s'%(lc.name)
+	figName = os.path.join(dataDir,'%s_AllBands_LC.jpg'%(lc.name))
+	if not os.path.isfile(figName):
+		for band in bandSeq:
+			lc = sdssLC[band]
+			lc.plot()
+		if args.savefig:
+			plt.savefig(figName)
+		if args.show:
+			plt.show()
+		plt.clf()
+
+	print 'Plotting structure function for %s'%(lc.name)
+	figName = os.path.join(dataDir,'%s_AllBands_SF.jpg'%(lc.name))
+	if not os.path.isfile(figName):
+		for band in bandSeq:
+			lc = sdssLC[band]
+			lc.plotsf()
+		if args.savefig:
+			plt.savefig(figName)
+		if args.show:
+			plt.show()
+		plt.clf()
 
 taskDict = dict()
 DICDict= dict()
 totalTime = 0.0
 
-for band in 'ugriz':
+for band in bandSeq:
 	lc = sdssLC[band]
 	print '\nBand: %s\n'%(band)
 	for p in xrange(args.pMin, args.pMax + 1):
@@ -195,24 +223,68 @@ for band in 'ugriz':
 	loc0 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[0][0]
 	loc1 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[1][0]
 
-	lbls = list()
-	for i in xrange(pBest):
-		lbls.append(r'$\tau_{AR, %d}$ ($d$)'%(i + 1))
-	for i in xrange(qBest):
-		lbls.append(r'$\tau_{MA, %d} ($d$)$'%(i))
-	lbls.append(r'Amp. ($F$ $d^{%2.1f}$)'%(qBest + 0.5 - pBest))
-	try:
-		mcmcviz.vizTriangle(pBest, qBest, bestTask.timescaleChain, labelList = lbls, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
-	except ValueError:
-		pass
+	if args.savefig or args.show:
+		lblsTau = list()
+		for i in xrange(pBest):
+			lblsTau.append(r'$\tau_{AR, %d}$ ($d$)'%(i + 1))
+		for i in xrange(qBest):
+			lblsTau.append(r'$\tau_{MA, %d}$ ($d$)'%(i))
+		lblsTau.append(r'Amp. ($Jy$ $d^{%2.1f}$)'%(qBest + 0.5 - pBest))
+		try:
+			mcmcviz.vizTriangle(pBest, qBest, bestTask.timescaleChain, labelList = lblsTau, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
+		except ValueError as err:
+			print str(err)
+		else:
+			print 'Plotting triangle plot of timescales for the %s-band light curve of %s'%(lc.band, lc.name)
+			figName = os.path.join(dataDir,'%s_%s_Tau.jpg'%(lc.name, lc.band))
+			if not os.path.isfile(figName):
+				if args.savefig:
+					plt.savefig(figName)
+				if args.show:
+					plt.show()
+				plt.clf()
 
-	Theta = bestTask.Chain[:, loc0, loc1]
-	nt = libcarma.basicTask(pBest, qBest)
-	nt.set(lc.dt, Theta)
-	nt.smooth(lc)
-	lc.plot()
-	bestTask.plotsf(lc)
-	plt.show()
+		lblsTheta = list()
+		for i in xrange(pBest):
+			lblsTheta.append(r'$\alpha_{%d}$'%(i + 1))
+		for i in xrange(qBest + 1):
+			lblsTheta.append(r'$\beta_{%d}$'%(i))
+		try:
+			mcmcviz.vizTriangle(pBest, qBest, bestTask.Chain, labelList = lblsTheta, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
+		except ValueError as err:
+			print str(err)
+		else:
+			print 'Plotting triangle plot of parameters for the %s-band light curve of %s'%(lc.band, lc.name)
+			figName = os.path.join(dataDir,'%s_%s_Theta.jpg'%(lc.name, lc.band))
+			if not os.path.isfile(figName):
+				if args.savefig:
+					plt.savefig(figName)
+				if args.show:
+					plt.show()
+				plt.clf()
+
+	if args.savefig or args.show:
+		figName = os.path.join(dataDir,'%s_%s_LC.jpg'%(lc.name, lc.band))
+		if not os.path.isfile(figName):
+			Theta = bestTask.Chain[:, loc0, loc1]
+			nt = libcarma.basicTask(pBest, qBest)
+			nt.set(lc.dt, Theta)
+			nt.smooth(lc)
+			lc.plot()
+			if args.savefig:
+				plt.savefig(figName)
+			if args.show:
+				plt.show()
+			plt.clf()
+
+		figName = os.path.join(dataDir,'%s_%s_SF.jpg'%(lc.name, lc.band))
+		if not os.path.isfile(figName):
+			bestTask.plotsf(lc)
+			if args.savefig:
+				plt.savefig(figName)
+			if args.show:
+				plt.show()
+			plt.clf()
 
 if args.stop:
 	pdb.set_trace()

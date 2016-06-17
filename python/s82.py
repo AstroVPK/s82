@@ -259,14 +259,14 @@ class sdssLC(libcarma.basicLC):
 	def plot(self, doShow = False):
 		plt.figure(-1, figsize = (fwid, fhgt))
 		if np.sum(self.x) != 0.0:
-			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', zorder = 0)
-			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', marker = 'o', markeredgecolor = 'none', zorder = 0)
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#000000', zorder = 0)
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#000000', marker = 'o', markeredgecolor = 'none', zorder = 0)
 		if np.sum(self.y) != 0.0:
 			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 		if self.isSmoothed:
-			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#4daf4a', marker = 'o', markeredgecolor = 'none', zorder = -5)
-			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#4daf4a', zorder = -5)
-			plt.fill_between(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) - self.xerrSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) + self.xerrSmooth, facecolor = '#ccebc5', alpha = 0.5, zorder = -5)
+			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], marker = 'o', markeredgecolor = 'none', zorder = -5)
+			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], zorder = -5)
+			plt.fill_between(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) - self.xerrSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) + self.xerrSmooth, facecolor = self.smoothErrColorDict[self.band], zorder = -10)
 		plt.xlabel(self.xunit)
 		plt.ylabel(self.yunit)
 		plt.title(r'Light curve')
@@ -368,7 +368,9 @@ class sdssLC(libcarma.basicLC):
 		self._isSmoothed = False
 		self._dtSmooth = 0.0
 		self._isRegular = False
-		self.colorDict = {'u': '#6a3d9a', 'g': '#33a02c', 'r': '#ff7f00', 'i': '#e31a1c', 'z': '#b15928'}
+		self.colorDict = {'u': '#756bb1', 'g': '#3182bd', 'r': '#31a354', 'i': '#de2d26', 'z': '#636363'}
+		self.smoothColorDict = {'u': '#bcbddc', 'g': '#9ecae1', 'r': '#a1d99b', 'i': '#fc9272', 'z': '#bdbdbd'}
+		self.smoothErrColorDict = {'u': '#efedf5', 'g': '#deebf7', 'r': '#e5f5e0', 'i': '#fee0d2', 'z': '#f0f0f0'}
 
 	def write(self):
 		pass
