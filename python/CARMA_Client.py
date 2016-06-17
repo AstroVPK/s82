@@ -22,6 +22,17 @@ def getLC(ID):
 	socket.close()
 	return fname, z, data
 
+def getIDList():
+
+	context = zmq.Context()
+	socket = context.socket(zmq.REQ)
+	socket.connect('tcp://76.124.106.126:5001')
+
+	socket.send(b"IDList\n0")
+	idlist = socket.recv_pyobj()
+	socket.close()
+	return idlist
+
 
 if __name__ == '__main__':
 

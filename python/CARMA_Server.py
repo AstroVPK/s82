@@ -13,7 +13,7 @@ class Server:
 		self.socket = self.context.socket(zmq.REP)
 		self.socket.bind('tcp://*:5001')
 
-		self.commands = {'getLC':self.getLC, 'randLC':self.randLC}
+		self.commands = {'getLC':self.getLC, 'randLC':self.randLC, "IDList":self.getIDList}
 	
 		print "Server Started"
 
@@ -29,7 +29,9 @@ class Server:
 
 	def getIDList(self, *args):
 
-		pass	
+		idlist = FileManager.IDList(FileManager.getLCList())
+		self.socket.send_pyobj(idlist)
+		print "Sent %s" % "id list"
 
 	def randLC(self, *args):
 
