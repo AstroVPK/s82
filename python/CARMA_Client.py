@@ -1,10 +1,12 @@
 import zmq
 
+addr = "tcp://newton.physics.drexel.edu:5001"
+
 def getRandLC():
 
 	context = zmq.Context()
 	socket = context.socket(zmq.REQ)
-	socket.connect('tcp://76.124.106.126:5001')
+	socket.connect(addr)
 
 	socket.send(b"randLC\n0")
 	fname, z, data = socket.recv_pyobj()
@@ -15,7 +17,7 @@ def getLC(ID):
 
 	context = zmq.Context()
 	socket = context.socket(zmq.REQ)
-	socket.connect('tcp://76.124.106.126:5001')
+	socket.connect(addr)
 
 	socket.send(b"getLC\n%s" % ID)
 	fname, z, data = socket.recv_pyobj()
@@ -26,7 +28,7 @@ def getIDList():
 
 	context = zmq.Context()
 	socket = context.socket(zmq.REQ)
-	socket.connect('tcp://76.124.106.126:5001')
+	socket.connect(addr)
 
 	socket.send(b"IDList\n0")
 	idlist = socket.recv_pyobj()
