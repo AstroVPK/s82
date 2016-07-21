@@ -101,7 +101,7 @@ for band in bandSeq:
 	lc.maxTimescale = args.maxTimescale
 	lc.maxSigma = args.maxSigma
 
-if args.savefig or args.show:
+'''if args.savefig or args.show:
 	print 'Plotting light curve for %s'%(lc.name)
 	figName = os.path.join(dataDir,'%s_AllBands_LC.jpg'%(lc.name))
 	if not os.path.isfile(figName):
@@ -124,7 +124,7 @@ if args.savefig or args.show:
 			plt.savefig(figName, dpi = 1000)
 		if args.show:
 			plt.show()
-		plt.clf()
+		plt.clf()'''
 
 taskDict = dict()
 DICDict= dict()

@@ -244,30 +244,38 @@ class sdssLC(libcarma.basicLC):
 	def newRandLC(self, band):
 		return sdssLC(name = '', band = band)
 
-	def plot(self, doShow = False):
-		plt.figure(-1, figsize = (fwid, fhgt))
-		if np.sum(self.x) != 0.0:
-			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#000000', zorder = 0)
-			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#000000', marker = 'o', markeredgecolor = 'none', zorder = 0)
-		if np.sum(self.y) != 0.0:
-			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (SDSS %s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
+	def plot(self, fig = -1, doShow = False, clearFig = True):
+		newFig = plt.figure(fig, figsize = (fwid, fhgt))
+		if clearFig:
+			plt.clf()
+		if (np.sum(self.x) != 0.0) and (np.sum(self.y) == 0.0):
+			plt.plot(self.t, self.x, color = '#000000', zorder = 0)
+			plt.plot(self.t, self.x, color = '#000000', marker = 'o', markeredgecolor = 'none', zorder = 0)
+		if (np.sum(self.x) == 0.0) and (np.sum(self.y) != 0.0):
+			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (%s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 			plt.xlim(self.t[0], self.t[-1])
+		if (np.sum(self.x) != 0.0) and (np.sum(self.y) != 0.0):
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', zorder = 0)
+			plt.plot(self.t, self.x - np.mean(self.x) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = '#984ea3', marker = 'o', markeredgecolor = 'none', zorder = 0)
+			plt.errorbar(self.t[np.where(self.mask == 1.0)[0]], self.y[np.where(self.mask == 1.0)[0]], self.yerr[np.where(self.mask == 1.0)[0]], label = r'%s (%s-band)'%(self.name, self.band), fmt = 'o', capsize = 0, color = '#ff7f00', markeredgecolor = 'none', zorder = 10)
+		plt.xlim(self.t[0], self.t[-1])
 		if self.isSmoothed:
 			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], marker = 'o', markeredgecolor = 'none', zorder = -5)
 			plt.plot(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]), color = self.smoothColorDict[self.band], zorder = -5)
-			plt.fill_between(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) - self.xerrSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) + self.xerrSmooth, facecolor = self.smoothErrColorDict[self.band], zorder = -10)
+			plt.fill_between(self.tSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) - self.xerrSmooth, self.xSmooth - np.mean(self.xSmooth) + np.mean(self.y[np.where(self.mask == 1.0)[0]]) + self.xerrSmooth, facecolor = self.smoothErrColorDict[self.band], alpha = 0.5, zorder = -5)
 		plt.xlabel(self.xunit)
 		plt.ylabel(self.yunit)
 		plt.title(r'Light curve')
 		plt.legend()
 		if doShow:
 			plt.show(False)
+		return newFig
 
-	def plotacvf(self, doShow = False):
-		plt.figure(-2, figsize = (fwid, fhgt))
+	def plotacvf(self, fig = -2, newdt = None, doShow = False):
+		newFig = plt.figure(fig, figsize = (fwid, fhgt))
 		plt.plot(0.0, 0.0)
 		if np.sum(self.y) != 0.0:
-			lagsE, acvfE, acvferrE = self.acvf()
+			lagsE, acvfE, acvferrE = self.acvf(newdt)
 			if np.sum(acvfE) != 0.0:
 				plt.errorbar(lagsE[1:], acvfE[1:], acvferrE[1:], label = r'%s (SDSS %s-band) obs. Autocovariance Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 				plt.xlim(lagsE[1], lagsE[-1])
@@ -277,12 +285,13 @@ class sdssLC(libcarma.basicLC):
 		plt.legend(loc = 3)
 		if doShow:
 			plt.show(False)
+		return newFig
 
-	def plotacf(self, doShow = False):
-		plt.figure(-3, figsize = (fwid, fhgt))
+	def plotacf(self, fig = -3, newdt = None, doShow = False):
+		newFig = plt.figure(fig, figsize = (fwid, fhgt))
 		plt.plot(0.0, 0.0)
 		if np.sum(self.y) != 0.0:
-			lagsE, acfE, acferrE = self.acf()
+			lagsE, acfE, acferrE = self.acf(newdt)
 			if np.sum(acfE) != 0.0:
 				plt.errorbar(lagsE[1:], acfE[1:], acferrE[1:], label = r'%s (SDSS %s-band) obs. Autocorrelation Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 				plt.xlim(lagsE[1], lagsE[-1])
@@ -293,12 +302,13 @@ class sdssLC(libcarma.basicLC):
 		plt.ylim(-1.0, 1.0)
 		if doShow:
 			plt.show(False)
+		return newFig
 
-	def plotsf(self, doShow = False):
-		plt.figure(-4, figsize = (fwid, fhgt))
+	def plotsf(self, fig = -4, newdt = None, doShow = False):
+		newFig = plt.figure(fig, figsize = (fwid, fhgt))
 		plt.loglog(1.0, 1.0)
 		if np.sum(self.y) != 0.0:
-			lagsE, sfE, sferrE = self.sf()
+			lagsE, sfE, sferrE = self.sf(newdt)
 			if np.sum(sfE) != 0.0:
 				plt.errorbar(lagsE[1:], sfE[1:], sferrE[1:], label = r'%s (SDSS %s-band) obs. Structure Function'%(self.name, self.band), fmt = 'o', capsize = 0, color = self.colorDict[self.band], markeredgecolor = 'none', zorder = 10)
 				plt.xlim(lagsE[1], lagsE[-1])
@@ -308,6 +318,7 @@ class sdssLC(libcarma.basicLC):
 		plt.legend(loc = 2)
 		if doShow:
 			plt.show(False)
+		return newFig
 
 	def read(self, name, band, pwd = None, **kwargs):
 		self._computedCadenceNum = -1
