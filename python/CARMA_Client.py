@@ -41,5 +41,11 @@ def getIDList():
 
 if __name__ == '__main__':
 
-	print getRandLC()	
+	import sys
+	if len(sys.argv) == 1:
+		print "Test"
+	elif sys.argv[1] == '--rand':
+		print getRandLC()	
+	elif sysargv[1] == '--list':
+		print getIDList()
 

@@ -15,7 +15,7 @@ import os as os
 
 import libcarma as libcarma
 import util.mcmcviz as mcmcviz
-import sdss as sdss
+import s82 as sdss
 from util.mpl_settings import set_plot_params
 import util.triangle as triangle
 
@@ -79,7 +79,9 @@ if (args.pMin < 1):
 if (args.qMin < 0):
 	raise ValueError('qMin must be greater than or equal to 0')
 
-sdssLC = sdss.sdss_gLC(supplied = args.name, pwd = args.pwd)
+sdssLC = sdss.sdssLC(name = args.name, pwd = args.pwd, band = 'g')
+
+pdb.set_trace()
 sdssLC.minTimescale = args.minTimescale
 sdssLC.maxTimescale = args.maxTimescale
 sdssLC.maxSigma = args.maxSigma

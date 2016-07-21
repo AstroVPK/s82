@@ -14,6 +14,7 @@ import argparse
 import psutil
 import warnings
 import sys
+import CARMA_Client as cc
 
 try:
 	import libcarma as libcarma
@@ -52,23 +53,10 @@ set_plot_params(useTex = True)
 class sdssLC(libcarma.basicLC):
 
 	def _getRandLC(self):
-		context = zmq.Context()
-		socket = context.socket(zmq.REQ)
-		socket.connect('tcp://76.124.106.126:5001')
-		socket.send(b"randLC\n0")
-		fname, z, data = socket.recv_pyobj()
-		socket.close()
-		return fname, z, data
+		return cc.getRandLC()
 
 	def _getLC(self, ID):
-		context = zmq.Context()
-		socket = context.socket(zmq.REQ)
-		socket.connect('tcp://76.124.106.126:5001')
-	
-		socket.send(b"getLC\n%s" % ID)
-		fname, z, data = socket.recv_pyobj()
-		socket.close()
-		return fname, z, data
+		return cc.getLC(ID)
 
 	def fit(self, pMin = 1, pMax = 1, qMin = -1, qMax = -1, nwalkers = 200, nsteps = 1000, xTol = 0.001, maxEvals = 10000):
 		self.taskDict = dict()
