@@ -320,7 +320,7 @@ class sdssLC(libcarma.basicLC):
 			plt.show(False)
 		return newFig
 
-	def read(self, name, band, pwd = None, **kwargs):
+	def read(self, name, band, path = None, **kwargs):
 		self._computedCadenceNum = -1
 		self._tolIR = 1.0e-3
 		self._fracIntrinsicVar = 0.0
