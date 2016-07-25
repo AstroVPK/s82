@@ -84,7 +84,7 @@ if (args.qMin < 0):
 	raise ValueError('qMin must be greater than or equal to 0')
 
 if args.savefig:
-	dataDir = os.environ['S82DATADIR']
+	dataDir = args.pwd
 
 bandSeq = 'gri'#'uzgri'
 sdssLC = {}
