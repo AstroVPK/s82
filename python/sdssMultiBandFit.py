@@ -39,9 +39,7 @@ set_plot_params(useTex = True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-pwd', '--pwd', type = str, default = '/home/vpk24/Documents', help = r'Path to working directory')
-parser.add_argument('-n', '--name', type = str, default = 'random', help = r'SDSS Filename')
-parser.add_argument('-libcarmaChain', '--lC', type = str, default = 'libcarmaChain', help = r'libcarma Chain Filename')
-parser.add_argument('-cmcmcChain', '--cC', type = str, default = 'cmcmcChain', help = r'carma_pack Chain Filename')
+parser.add_argument('-n', '--name', type = str, default = 'random', help = r'SDSS Objectlist Filename')
 parser.add_argument('-nsteps', '--nsteps', type = int, default = 250, help = r'Number of steps per walker')
 parser.add_argument('-nwalkers', '--nwalkers', type = int, default = 25*psutil.cpu_count(logical = True), help = r'Number of walkers')
 parser.add_argument('-pMax', '--pMax', type = int, default = 1, help = r'Maximum C-AR order')
@@ -100,31 +98,6 @@ for band in bandSeq:
 	lc.minTimescale = args.minTimescale
 	lc.maxTimescale = args.maxTimescale
 	lc.maxSigma = args.maxSigma
-
-'''if args.savefig or args.show:
-	print 'Plotting light curve for %s'%(lc.name)
-	figName = os.path.join(dataDir,'%s_AllBands_LC.jpg'%(lc.name))
-	if not os.path.isfile(figName):
-		for band in bandSeq:
-			lc = sdssLC[band]
-			lc.plot()
-		if args.savefig:
-			plt.savefig(figName, dpi = 1000)
-		if args.show:
-			plt.show()
-		plt.clf()
-
-	print 'Plotting structure function for %s'%(lc.name)
-	figName = os.path.join(dataDir,'%s_AllBands_SF.jpg'%(lc.name))
-	if not os.path.isfile(figName):
-		for band in bandSeq:
-			lc = sdssLC[band]
-			lc.plotsf()
-		if args.savefig:
-			plt.savefig(figName, dpi = 1000)
-		if args.show:
-			plt.show()
-		plt.clf()'''
 
 taskDict = dict()
 DICDict= dict()
