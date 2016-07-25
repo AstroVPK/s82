@@ -38,7 +38,7 @@ fwid = 16
 set_plot_params(useTex = True)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-pwd', '--pwd', type = str, default = '/home/vpk24/Documents', help = r'Path to working directory')
+parser.add_argument('-pwd', '--pwd', type = str, default = os.environ['S82DATADIR'], help = r'Path to working directory')
 parser.add_argument('-n', '--name', type = str, default = 'random', help = r'SDSS Objectlist Filename')
 parser.add_argument('-nsteps', '--nsteps', type = int, default = 250, help = r'Number of steps per walker')
 parser.add_argument('-nwalkers', '--nwalkers', type = int, default = 25*psutil.cpu_count(logical = True), help = r'Number of walkers')
