@@ -345,27 +345,34 @@ class sdssLC(libcarma.basicLC):
 		yerr = data['calMagErr_%s' % band]
 		y, yerr = jools.luptitude_to_flux(y, yerr, band)
 		t = jools.time_to_restFrame(t, float(self.z))
-		self._numCadences = len(t)
-		self.t = np.require(np.zeros(self.numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
-		self.x = np.require(np.zeros(self.numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
-		self.y = np.require(np.zeros(self.numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
-		self.yerr = np.require(np.zeros(self.numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
-		self.mask = np.require(np.zeros(self.numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
+
+		meanY = np.mean(y)
+		stdY = np.std(y)
+		meanYerr = np.mean(yerr)
+		stdYerr = np.std(yerr)
+		tList = list()
+		yList = list()
+		yerrList = list()
+		for i in xrange(t.shape[0]):
+			if (math.fabs(y[i] - meanY) < 3.0*stdY) and (math.fabs(yerr[i] - meanYerr) < 3.0*stdYerr): # Hacked v-tight outlier rejection! Could try 5-sigma
+				tList.append(t[i])
+				yList.append(y[i])
+				yerrList.append(yerr[i])
+
+		self._numCadences = len(tList)
+		self.t = np.require(np.array(tList), requirements=['F', 'A', 'W', 'O', 'E'])
+		self.x = np.require(np.zeros(self._numCadences), requirements=['F', 'A', 'W', 'O', 'E'])
+		self.y = np.require(np.array(yList), requirements=['F', 'A', 'W', 'O', 'E'])
+		self.yerr = np.require(np.array(yerrList), requirements=['F', 'A', 'W', 'O', 'E'])
+		self.mask = np.require(np.array(self._numCadences*[1.0]), requirements=['F', 'A', 'W', 'O', 'E'])
 		self._name = self.name.split('/')[-1].split('_')[1]
 		self._band = band
 		self.objID = data['objID']
-		self.t[:] = t - t[0]
-		self.y[:] = y
-		self.yerr[:] = yerr
-		self.mask[:] += 1
-		self.startT = t[0]
+		self.startT = float(self.t[0])
+		self.t = self.t - self.t[0]
 		self._band = band
 		self._xunit = r'$d$ (MJD)' ## Unit in which time is measured (eg. s, sec, seconds etc...).
 		self._yunit = r'$F$ (Jy)' ## Unit in which the flux is measured (eg Wm^{-2} etc...).
-		self._mean = np.mean(self.y)
-		self._std = np.std(self.y)
-		self._meanerr = np.mean(self.yerr)
-		self._stderr = np.std(self.yerr)
 		self._T = float(self.t[-1] - self.t[0])
 		self._dt = float(np.nanmin(self.t[1:] - self.t[:-1]))
 		self._isSmoothed = False
@@ -374,6 +381,30 @@ class sdssLC(libcarma.basicLC):
 		self.colorDict = {'u': '#756bb1', 'g': '#3182bd', 'r': '#31a354', 'i': '#de2d26', 'z': '#636363'}
 		self.smoothColorDict = {'u': '#bcbddc', 'g': '#9ecae1', 'r': '#a1d99b', 'i': '#fc9272', 'z': '#bdbdbd'}
 		self.smoothErrColorDict = {'u': '#efedf5', 'g': '#deebf7', 'r': '#e5f5e0', 'i': '#fee0d2', 'z': '#f0f0f0'}
+
+		count = int(np.sum(self.mask))
+		y_meanSum = 0.0
+		yerr_meanSum = 0.0
+		for i in xrange(self.numCadences):
+			y_meanSum += self.mask[i]*self.y[i]
+			yerr_meanSum += self.mask[i]*self.yerr[i]
+		if count > 0.0:
+			self._mean = y_meanSum/count
+			self._meanerr = yerr_meanSum/count
+		else:
+			self._mean = 0.0
+			self._meanerr = 0.0
+		y_stdSum = 0.0
+		yerr_stdSum = 0.0
+		for i in xrange(self.numCadences):
+			y_stdSum += math.pow(self.mask[i]*self.y[i] - self._mean, 2.0)
+			yerr_stdSum += math.pow(self.mask[i]*self.yerr[i] - self._meanerr, 2.0)
+		if count > 0.0:
+			self._std = math.sqrt(y_stdSum/count)
+			self._stderr = math.sqrt(yerr_stdSum/count)
+		else:
+			self._std = 0.0
+			self._stderr = 0.0
 
 	def write(self):
 		pass
