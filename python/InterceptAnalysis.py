@@ -13,7 +13,14 @@ import pdb
 import matplotlib.pyplot as plt
 from matplotlib import cm as colormap
 from matplotlib import gridspec as gridspec
-plt.ion()
+
+try: 
+	os.environ['DISPLAY']
+except KeyError as Err:
+	warnings.warn('No display environment! Using matplotlib backend "Agg"')
+	import matplotlib
+	matplotlib.use('Agg')
+#plt.ion()
 
 import libcarma as libcarma
 import util.mcmcviz as mcmcviz
@@ -41,7 +48,7 @@ set_plot_params(useTex = True)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-pwd', '--pwd', type = str, default = os.environ['S82DATADIR'], help = r'Path to working directory')
-parser.add_argument('-n', '--name', type = str, default = r'random', help = r'SDSS Objectlist Filename')
+parser.add_argument('-n', '--name', type = str, default = r'S82wInterceptsSmall.dat', help = r'SDSS Objectlist Filename')
 parser.add_argument('-b', '--band', type = str, default = r'i', help = r'SDSS filter band to use')
 parser.add_argument('-nsteps', '--nsteps', type = int, default = 250, help = r'Number of steps per walker')
 parser.add_argument('-nwalkers', '--nwalkers', type = int, default = 25*psutil.cpu_count(logical = True), help = r'Number of walkers')
@@ -145,171 +152,15 @@ flatIntercept = np.zeros(numKeys*numEntries)
 for i in xrange(numKeys):
 	for entry in xrange(numEntries):
 		flatFracVar[entry + i*numEntries] = objDict[keyList[i]]['fracVar'][entry]
-		flatLongestT[entry + i*numEntries] = objDict[keyList[i]]['longestT'][entry]
+		flatLongestT[entry + i*numEntries] = math.log10(objDict[keyList[i]]['longestT'][entry])
 		flatIntercept[entry + i*numEntries] = objDict[keyList[i]]['intercept']
 scatPlot = ax1.scatter(flatFracVar, flatLongestT, c = flatIntercept, marker = '.', edgecolor = 'none', cmap = colormap.gist_rainbow_r)
 cBar = plt.colorbar(scatPlot, ax = ax1, orientation='vertical')
-plt.show()
-pdb.set_trace()
-
-
-'''for band in bandSeq:
-	lc = sdssLC[band]
-	print '\nBand: %s\n'%(band)
-	for p in xrange(args.pMin, args.pMax + 1):
-		for q in xrange(args.qMin, min(p, args.qMax + 1)):
-			nt = libcarma.basicTask(p, q, nwalkers = args.nwalkers, nsteps = args.nsteps)
-	
-			print 'Starting libcarma fitting for p = %d and q = %d...'%(p, q)
-			startLCARMA = time.time()
-			nt.fit(sdssLC[band])
-			stopLCARMA = time.time()
-			timeLCARMA = stopLCARMA - startLCARMA
-			print 'libcarma took %4.3f s = %4.3f min = %4.3f hrs'%(timeLCARMA, timeLCARMA/60.0, timeLCARMA/3600.0)
-			totalTime += timeLCARMA
-	
-			Deviances = copy.copy(nt.LnPosterior[:,args.nsteps/2:]).reshape((-1))
-			DIC = 0.5*math.pow(np.nanstd(-2.0*Deviances),2.0) + np.nanmean(-2.0*Deviances)
-			print 'C-ARMA(%d,%d) DIC: %+4.3e'%(p, q, DIC)
-			DICDict['%d %d'%(p, q)] = DIC
-			taskDict['%d %d'%(p, q)] = nt
-	print 'Total time taken by libcarma is %4.3f s = %4.3f min = %4.3f hrs'%(totalTime, totalTime/60.0, totalTime/3600.0)
-
-	sortedDICVals = sorted(DICDict.items(), key = operator.itemgetter(1))
-	pBest = int(sortedDICVals[0][0].split()[0])
-	qBest = int(sortedDICVals[0][0].split()[1])
-	print 'Best model is C-ARMA(%d,%d)'%(pBest, qBest)
-
-	bestTask = taskDict['%d %d'%(pBest, qBest)]
-
-	if args.viewer:
-		notDone = True
-		while notDone:
-			whatToView = -1
-			while whatToView < 0 or whatToView > 3:
-				whatToView = int(raw_input('View walkers in C-ARMA coefficients (0) or C-ARMA roots (1) or C-ARMA timescales (2):'))
-			pView = -1
-			while pView < 1 or pView > args.pMax:
-				pView = int(raw_input('C-AR model order:'))
-			qView = -1
-			while qView < 0 or qView >= pView:
-				qView = int(raw_input('C-MA model order:'))
-
-			dim1 = -1
-			while dim1 < 0 or dim1 > pView + qView + 1:
-				dim1 = int(raw_input('1st Dimension to view:'))
-			dim2 = -1
-			while dim2 < 0 or dim2 > pView + qView + 1 or dim2 == dim1:
-				dim2 = int(raw_input('2nd Dimension to view:'))
-
-			if whatToView == 0:
-				if dim1 < pView:
-					dim1Name = r'$a_{%d}$'%(dim1)
-				if dim1 >= pView and dim1 < pView + qView + 1:
-					dim1Name = r'$b_{%d}$'%(dim1 - pView)
-				if dim2 < pView:
-					dim2Name = r'$a_{%d}$'%(dim2)
-				if dim2 >= pView and dim2 < pView + qView + 1:
-					dim2Name = r'$b_{%d}$'%(dim2 - pView)
-				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].Chain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-
-			elif whatToView == 1:
-				if dim1 < pView:
-					dim1Name = r'$r_{%d}$'%(dim1)
-				if dim1 >= pView and dim1 < pView + qView:
-					dim1Name = r'$m_{%d}$'%(dim1 - pView)
-				if dim1 == pView + qView:
-					dim1Name = r'$\mathrm{Amp.}$'
-				if dim2 < pView:
-					dim2Name = r'$r_{%d}$'%(dim2)
-				if dim2 >= pView and dim2 < pView + qView:
-					dim2Name = r'$m_{%d}$'%(dim2 - pView)
-				if dim2 == pView + qView:
-					dim2Name = r'$\mathrm{Amp.}$'
-				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].rootChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-
-			else:
-				if dim1 < pView + qView:
-					dim1Name = r'$\tau_{%d}$'%(dim1)
-				if dim1 == pView + qView:
-					dim1Name = r'$\mathrm{Amp.}$'
-				if dim2 < pView + qView:
-					dim2Name = r'$\tau_{%d}$'%(dim2)
-				if dim2 == pView + qView:
-					dim2Name = r'$\mathrm{Amp.}$'
-				res = mcmcviz.vizWalkers(taskDict['%d %d'%(pView, qView)].timescaleChain, taskDict['%d %d'%(pView, qView)].LnPosterior, dim1, dim1Name, dim2, dim2Name)
-
-			var = str(raw_input('Do you wish to view any more MCMC walkers? (y/n):')).lower()
-			if var == 'n':
-				notDone = False
-
-	loc0 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[0][0]
-	loc1 = np.where(bestTask.LnPosterior == np.max(bestTask.LnPosterior))[1][0]
-
-	if args.savefig or args.show:
-		lblsTau = list()
-		for i in xrange(pBest):
-			lblsTau.append(r'$\tau_{AR, %d}$ ($d$)'%(i + 1))
-		for i in xrange(qBest):
-			lblsTau.append(r'$\tau_{MA, %d}$ ($d$)'%(i))
-		lblsTau.append(r'Amp. ($Jy$ $d^{%2.1f}$)'%(qBest + 0.5 - pBest))
-		try:
-			mcmcviz.vizTriangle(pBest, qBest, bestTask.timescaleChain, labelList = lblsTau, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
-		except ValueError as err:
-			print str(err)
-		else:
-			print 'Plotting triangle plot of timescales for the %s-band light curve of %s'%(lc.band, lc.name)
-			figName = os.path.join(dataDir,'%s_%s_Tau.jpg'%(lc.name, lc.band))
-			if not os.path.isfile(figName):
-				if args.savefig:
-					plt.savefig(figName, dpi = 1000)
-				if args.show:
-					plt.show()
-				plt.clf()
-
-		lblsTheta = list()
-		for i in xrange(pBest):
-			lblsTheta.append(r'$\alpha_{%d}$'%(i + 1))
-		for i in xrange(qBest + 1):
-			lblsTheta.append(r'$\beta_{%d}$'%(i))
-		try:
-			mcmcviz.vizTriangle(pBest, qBest, bestTask.Chain, labelList = lblsTheta, figTitle = r'SDSS S82 %s-band LC %s'%(lc.name, lc.band))
-		except ValueError as err:
-			print str(err)
-		else:
-			print 'Plotting triangle plot of parameters for the %s-band light curve of %s'%(lc.band, lc.name)
-			figName = os.path.join(dataDir,'%s_%s_Theta.jpg'%(lc.name, lc.band))
-			if not os.path.isfile(figName):
-				if args.savefig:
-					plt.savefig(figName, dpi = 1000)
-				if args.show:
-					plt.show()
-				plt.clf()
-
-	if args.savefig or args.show:
-		print 'Plotting the %s-band light curve of %s'%(lc.band, lc.name)
-		figName = os.path.join(dataDir,'%s_%s_LC.jpg'%(lc.name, lc.band))
-		if not os.path.isfile(figName):
-			Theta = bestTask.Chain[:, loc0, loc1]
-			nt = libcarma.basicTask(pBest, qBest)
-			nt.set(lc.dt, Theta)
-			nt.smooth(lc)
-			lc.plot()
-			if args.savefig:
-				plt.savefig(figName, dpi = 1000)
-			if args.show:
-				plt.show()
-			plt.clf()
-
-		print 'Plotting the structure function of the %s-band light curve of %s'%(lc.band, lc.name)
-		figName = os.path.join(dataDir,'%s_%s_SF.jpg'%(lc.name, lc.band))
-		if not os.path.isfile(figName):
-			bestTask.plotsf(lc)
-			if args.savefig:
-				plt.savefig(figName, dpi = 1000)
-			if args.show:
-				plt.show()
-			plt.clf()'''
+ax1.set_xlabel(r'Fractional Variability $A/F$ ')
+ax1.set_ylabel(r'$\log_{10}$ Longest Timescale $\log_{10} \tau_{\mathrm{Longest}}$ ($\log_{10}$ d)')
+cBar.set_label(r'Intercept')
+if args.savefig:
+	fig1.savefig(os.path.join(args.pwd, 'InterceptAnalysis.jpg'), dpi = 300)
 
 if args.stop:
 	pdb.set_trace()

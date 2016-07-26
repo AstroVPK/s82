@@ -321,6 +321,8 @@ class sdssLC(libcarma.basicLC):
 		return newFig
 
 	def read(self, name, band, path = None, **kwargs):
+		self.OutlierDetectionYVal = kwargs.get('outlierDetectionYVal', np.inf)
+		self.OutlierDetectionYERRVal = kwargs.get('outlierDetectionYERRVal', 5.0)
 		self._computedCadenceNum = -1
 		self._tolIR = 1.0e-3
 		self._fracIntrinsicVar = 0.0
@@ -346,18 +348,27 @@ class sdssLC(libcarma.basicLC):
 		y, yerr = jools.luptitude_to_flux(y, yerr, band)
 		t = jools.time_to_restFrame(t, float(self.z))
 
-		meanY = np.mean(y)
-		stdY = np.std(y)
 		meanYerr = np.mean(yerr)
 		stdYerr = np.std(yerr)
+		tListTemp = list()
+		yListTemp = list()
+		yerrListTemp = list()
+		for i in xrange(t.shape[0]):
+			if math.fabs(yerr[i] - meanYerr) < self.OutlierDetectionYERRVal*stdYerr: # Outlier rejection! 5-sigma
+				tListTemp.append(t[i])
+				yListTemp.append(y[i])
+				yerrListTemp.append(yerr[i])
+
+		meanY = np.mean(np.array(yListTemp))
+		stdY = np.std(np.array(yListTemp))
 		tList = list()
 		yList = list()
 		yerrList = list()
-		for i in xrange(t.shape[0]):
-			if (math.fabs(y[i] - meanY) < 3.0*stdY) and (math.fabs(yerr[i] - meanYerr) < 3.0*stdYerr): # Hacked v-tight outlier rejection! Could try 5-sigma
-				tList.append(t[i])
-				yList.append(y[i])
-				yerrList.append(yerr[i])
+		for i in xrange(len(tListTemp)):
+			if math.fabs(yListTemp[i] - meanY) < self.OutlierDetectionYVal*stdY: # Disabled outlier rejection! Could try 3-sigma
+				tList.append(tListTemp[i])
+				yList.append(yListTemp[i])
+				yerrList.append(yerrListTemp[i])
 
 		self._numCadences = len(tList)
 		self.t = np.require(np.array(tList), requirements=['F', 'A', 'W', 'O', 'E'])
