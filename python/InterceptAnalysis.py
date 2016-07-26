@@ -10,10 +10,6 @@ import copy as copy
 import time as time
 import pdb
 
-import matplotlib.pyplot as plt
-from matplotlib import cm as colormap
-from matplotlib import gridspec as gridspec
-
 try: 
 	os.environ['DISPLAY']
 except KeyError as Err:
@@ -21,6 +17,10 @@ except KeyError as Err:
 	import matplotlib
 	matplotlib.use('Agg')
 #plt.ion()
+
+import matplotlib.pyplot as plt
+from matplotlib import cm as colormap
+from matplotlib import gridspec as gridspec
 
 import libcarma as libcarma
 import util.mcmcviz as mcmcviz
