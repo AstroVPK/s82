@@ -49,6 +49,7 @@ set_plot_params(useTex = True)
 parser = argparse.ArgumentParser()
 parser.add_argument('-pwd', '--pwd', type = str, default = os.environ['S82DATADIR'], help = r'Path to working directory')
 parser.add_argument('-n', '--name', type = str, default = r'S82wInterceptsSmall.dat', help = r'SDSS Objectlist Filename')
+parser.add_argument('-esc', '--escape', type = str, default = r'#', help = r'Escape character')
 parser.add_argument('-b', '--band', type = str, default = r'i', help = r'SDSS filter band to use')
 parser.add_argument('-nsteps', '--nsteps', type = int, default = 250, help = r'Number of steps per walker')
 parser.add_argument('-nwalkers', '--nwalkers', type = int, default = 25*psutil.cpu_count(logical = True), help = r'Number of walkers')
@@ -101,6 +102,8 @@ objDict = dict()
 with open(os.path.join(args.pwd, args.name), 'rb') as objFile:
 	allObjs = objFile.readlines()
 for line in allObjs:
+	if line[0] == args.escape:
+		continue
 	line.rstrip('\n')
 	words = line.split(' ')
 	objDict[words[0]] = {'lc': s82.sdssLC(name = words[0], band = args.band, minTimescale = args.minTimescale, maxTimescale = args.maxTimescale, maxSigma = args.maxSigma), 'intercept':float(words[1])}
@@ -130,7 +133,7 @@ for line in allObjs:
 	objDict[words[0]]['task'] = taskDict['%d %d'%(pBest, qBest)]
 	objDict[words[0]]['DIC'] = DICDict['%d %d'%(pBest, qBest)]
 	objDict[words[0]]['dt'] = objDict[words[0]]['lc'].dt
-	objDict[words[0]]['bestTheta'] = objDict[words[0]]['task'].Chain[:,np.where(objDict[words[0]]['task'].LnPosterior == np.max(objDict[words[0]]['task'].LnPosterior))[1][0],np.where(objDict[words[0]]['task'].LnPosterior == np.max(objDict[words[0]]['task'].LnPosterior))[1][0]]
+	objDict[words[0]]['bestTheta'] = objDict[words[0]]['task'].Chain[:,np.where(objDict[words[0]]['task'].LnPosterior == np.max(objDict[words[0]]['task'].LnPosterior))[0][0],np.where(objDict[words[0]]['task'].LnPosterior == np.max(objDict[words[0]]['task'].LnPosterior))[1][0]]
 	objDict[words[0]]['task'].set(objDict[words[0]]['dt'], objDict[words[0]]['bestTheta'])
 	objDict[words[0]]['task'].smooth(objDict[words[0]]['lc'])
 	fracVar = (np.real(objDict[words[0]]['task'].rootChain[pBest+qBest,:,args.nsteps/2:])/objDict[words[0]]['lc'].mean).flatten(order = 'A')
