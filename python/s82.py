@@ -385,7 +385,7 @@ class sdssLC(libcarma.basicLC):
 		self._xunit = r'$d$ (MJD)' ## Unit in which time is measured (eg. s, sec, seconds etc...).
 		self._yunit = r'$F$ (Jy)' ## Unit in which the flux is measured (eg Wm^{-2} etc...).
 		self._T = float(self.t[-1] - self.t[0])
-		self._dt = float(np.nanmin(self.t[1:] - self.t[:-1]))
+		self._dt = float(np.nanmean(self.t[1:] - self.t[:-1]))
 		self._isSmoothed = False
 		self._dtSmooth = 0.0
 		self._isRegular = False

@@ -142,6 +142,8 @@ for line in allObjs:
 	objDict[words[0]]['longestT'] = longestT
 	del DICDict
 	del taskDict
+	lcFig = objDict[words[0]]['lc'].plot()
+	lcFig.savefig(os.path.join(args.pwd, words[0] + '.jpg'), dpi = 300)
 
 gs1 = gridspec.GridSpec(1000,1000)
 fig1 = plt.figure(0,figsize=(fwid,fwid))
