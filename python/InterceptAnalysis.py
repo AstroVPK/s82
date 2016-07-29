@@ -22,11 +22,20 @@ import matplotlib.pyplot as plt
 from matplotlib import cm as colormap
 from matplotlib import gridspec as gridspec
 
-import libcarma as libcarma
-import util.mcmcviz as mcmcviz
-import s82 as s82
-from util.mpl_settings import set_plot_params
-import util.triangle as triangle
+try:
+	import libcarma as libcarma
+	import util.mcmcviz as mcmcviz
+	import s82 as s82
+	from util.mpl_settings import set_plot_params
+	import util.triangle as triangle
+	from util.mpl_settings import set_plot_params
+except ImportError:
+	print 'libcarma is not setup. Setup libcarma by sourcing bin/setup.sh'
+	sys.exit(1)
+
+fhgt = 10
+fwid = 16
+set_plot_params(useTex = True)
 
 try: 
 	os.environ['DISPLAY']
