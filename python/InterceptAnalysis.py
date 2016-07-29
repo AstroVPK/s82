@@ -157,7 +157,9 @@ for line in allObjs:
 	del DICDict
 	del taskDict
 	lcFig = objDict[words[0]]['lc'].plot()
-	lcFig.savefig(os.path.join(args.pwd, words[0] + '.jpg'), dpi = 300)
+	lcFig.savefig(os.path.join(args.pwd, words[0] + '_LC.jpg'), dpi = 300)
+	sfFig = objDict[words[0]]['task'].plotsf(LC = objDict[words[0]]['lc'], newdt = objDict[words[0]]['lc'].mindt/2.0)
+	plt.savefig(os.path.join(args.pwd, words[0] + '_SF.jpg'), dpi = 300)
 
 if len(objDict) > 0:
 	gs1 = gridspec.GridSpec(1000,1000)
@@ -174,7 +176,7 @@ if len(objDict) > 0:
 			flatFracVar[entry + i*numEntries] = objDict[keyList[i]]['fracVar'][entry]
 			flatLongestT[entry + i*numEntries] = math.log10(objDict[keyList[i]]['longestT'][entry])
 			flatIntercept[entry + i*numEntries] = objDict[keyList[i]]['intercept']
-	scatPlot = ax1.scatter(flatFracVar, flatLongestT, c = flatIntercept, marker = '.', edgecolor = 'none', cmap = colormap.gist_rainbow_r)
+	scatPlot = ax1.scatter(flatFracVar, flatLongestT, c = flatIntercept, marker = '.', edgecolor = 'none', cmap = colormap.PiYG)
 	cBar = plt.colorbar(scatPlot, ax = ax1, orientation='vertical')
 	ax1.set_xlabel(r'Fractional Variability $A/F$ ')
 	ax1.set_ylabel(r'$\log_{10}$ Longest Timescale $\log_{10} \tau_{\mathrm{Longest}}$ ($\log_{10}$ d)')
