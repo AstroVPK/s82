@@ -120,7 +120,11 @@ for line in allObjs:
 		continue
 	line.rstrip('\n')
 	words = line.split(' ')
-	trialLC = s82.sdssLC(name = words[0], band = args.band, minTimescale = args.minTimescale, maxTimescale = args.maxTimescale, maxSigma = args.maxSigma, outlierDetectionYVal = args.outlierDetectionYVal, outlierDetectionYERRVal = args.outlierDetectionYERRVal)
+	try:
+		trialLC = s82.sdssLC(name = words[0], band = args.band, minTimescale = args.minTimescale, maxTimescale = args.maxTimescale, maxSigma = args.maxSigma, outlierDetectionYVal = args.outlierDetectionYVal, outlierDetectionYERRVal = args.outlierDetectionYERRVal)
+	except IOError as err:
+		print str(err)
+		continue
 	if trialLC.mindt == 0.0:
 		print 'SDSS %s has atleast two epochs with the same timestamp! Skipping SDSS %s'%(words[0], words[0])
 		continue

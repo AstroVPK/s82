@@ -25,7 +25,11 @@ def getLC(ID):
 	socket = getSocket()
 
 	socket.send(b"getLC\n%s" % ID)
-	fname, z, data = socket.recv_pyobj()
+	returnObj = socket.recv_pyobj()
+	if returnObj is not None:
+		fname, z, data = returnObj
+	else:
+		raise IOError(b"%s not found on server!"%(ID))
 	socket.close()
 	return fname, z, data
 
