@@ -29,7 +29,7 @@ def getLC(ID):
 		returnObj = socket.recv_pyobj()
 	except Exception as e:
 		print e
-		rasie IOError(b'Internal Server Error...')
+		raise IOError(b'Internal Server Error...')
 
 	if returnObj is not None:
 		fname, z, data = returnObj
