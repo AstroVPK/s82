@@ -22,10 +22,15 @@ def getRandLC():
 
 def getLC(ID):
 
-	socket = getSocket()
+	try:
+		socket = getSocket()
 
-	socket.send(b"getLC\n%s" % ID)
-	returnObj = socket.recv_pyobj()
+		socket.send(b"getLC\n%s" % ID)
+		returnObj = socket.recv_pyobj()
+	except Exception as e:
+		print e
+		rasie IOError(b'Internal Server Error...')
+
 	if returnObj is not None:
 		fname, z, data = returnObj
 	else:
