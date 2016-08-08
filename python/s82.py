@@ -421,19 +421,19 @@ class sdssLC(libcarma.basicLC):
 			self._std = 0.0
 			self._stderr = 0.0
 
-	def write(self, task = None):
-		result = {}
-		if task is not None:
-			result['Chain'] = task.Chain
-			result['LogPosterior'] = task.LogPosterior
-			result['p'] = task.p
-			result['q'] = task.q
-		result['name'] = self.name
-		result['band'] = self.band
-		result['y'] = self.y
-		result['t'] = self.t
-		result['yerr'] = self.yerr
-		cPickle.dump(result, open('SDSSLC_'+self.name+'_'+str(task.p)+str(task.q)+'.p','w'))	
+	def write(self):
+		print "Saving..."
+		outData = {}
+		try:
+			outData['version'] = libcarma.__version__
+		except AttributeError:
+			print "Vishal, please add a __version__ to libcarma or allow direct import of kali"
+			pass
+		outData.update(self.__dict__)
+		del outData['_lcCython']
+		for key, value in outData['taskDict'].iteritems():
+			del outData['taskDict'][key].__dict__['_taskCython']
+		cPickle.dump(outData, open('SDSSLC_'+self.name+'_'+self.band+'.p','w'))	
 
 
 def test(band = 'r', nsteps = 1000, nwalkers = 200, pMax = 1, pMin = 1, qMax = -1, qMin = -1, minT = 2.0, maxT = 0.5, maxS = 2.0, xTol = 0.001, maxE = 10000, plot = True, stop = False, fit = True, viewer = True):
@@ -477,6 +477,7 @@ def test(band = 'r', nsteps = 1000, nwalkers = 200, pMax = 1, pMin = 1, qMax = -
 					else:
 						print 'Unrecognized fit parameter!'
 					changeAnother = str(raw_input('Would you like to change any other parameters? (y/n):'))
+	newLC.write()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
