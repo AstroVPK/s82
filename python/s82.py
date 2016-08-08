@@ -322,6 +322,19 @@ class sdssLC(libcarma.basicLC):
 		return newFig
 
 	def read(self, name, band, path = None, **kwargs):
+
+		if 'pickled' in kwargs:
+			if kwargs['pickled']:
+				filename = 'SDSSFit_'+name+'_'+band+'.p'
+				try:
+					with open(filename) as f:
+						print "File Found, loading Pickle"
+						self.__dict__.update(cPickle.load(f))
+						return
+				except Exception as e:
+					print str(e)
+					print "File not found, loading new from server..."
+
 		self.OutlierDetectionYVal = kwargs.get('outlierDetectionYVal', np.inf)
 		self.OutlierDetectionYERRVal = kwargs.get('outlierDetectionYERRVal', 5.0)
 		self._computedCadenceNum = -1
@@ -433,7 +446,7 @@ class sdssLC(libcarma.basicLC):
 		del outData['_lcCython']
 		for key, value in outData['taskDict'].iteritems():
 			del outData['taskDict'][key].__dict__['_taskCython']
-		cPickle.dump(outData, open('SDSSLC_'+self.name+'_'+self.band+'.p','w'))	
+		cPickle.dump(outData, open('SDSSFit_'+self.name+'_'+self.band+'.p','w'))	
 
 
 def test(band = 'r', nsteps = 1000, nwalkers = 200, pMax = 1, pMin = 1, qMax = -1, qMin = -1, minT = 2.0, maxT = 0.5, maxS = 2.0, xTol = 0.001, maxE = 10000, plot = True, stop = False, fit = True, viewer = True):
