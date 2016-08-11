@@ -57,7 +57,7 @@ fwid = 16
 set_plot_params(useTex = True)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-pwd', '--pwd', type = str, default = os.environ['S82DATADIR'], help = r'Path to working directory')
+parser.add_argument('-pwd', '--pwd', type = str, default = './', help = r'Path to working directory')
 parser.add_argument('-n', '--name', type = str, default = r'S82wInterceptsSmall.dat', help = r'SDSS Objectlist Filename')
 parser.add_argument('-oY', '--outlierDetectionYVal', type = float, default = np.inf, help = r'Maximum deviations away from mean for all y')
 parser.add_argument('-oYERR', '--outlierDetectionYERRVal', type = float, default = 5.0, help = r'Maximum deviations away from mean for all yerr')
@@ -122,7 +122,7 @@ for line in allObjs:
 	words = line.split(' ')
 	try:
 		trialLC = s82.sdssLC(name = words[0], band = args.band, minTimescale = args.minTimescale, maxTimescale = args.maxTimescale, maxSigma = args.maxSigma, outlierDetectionYVal = args.outlierDetectionYVal, outlierDetectionYERRVal = args.outlierDetectionYERRVal)
-	except IOError as err:
+	except s82.cc.SDSSError as err:
 		print str(err)
 		continue
 	if trialLC.mindt == 0.0:
