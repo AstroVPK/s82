@@ -6,6 +6,8 @@ from JacksTools import jio
 
 class Server:
 
+	__version__ = "0.0.1"
+
 	def __init__(self):
 
 		self.context = zmq.Context(io_threads = 4)
@@ -13,6 +15,7 @@ class Server:
 		self.socket = self.context.socket(zmq.REP)
 		self.socket.bind('tcp://*:5001')
 		self.running = True
+		self.randBytes = None
 
 		self.commands = {
 		'getLC':self.getLC, 
@@ -20,9 +23,13 @@ class Server:
 		'IDList':self.getIDList,
 		'isValid':self.isValidCommand,
 		'argCount':self.getArgCount,
-		'ping': self.respond}
+		'ping': self.respond,
+		'getRawLC':self.getRawLC,
+		'getAllRawLC':self.getAllRawLC}
 	
-		print "Server Started"
+		print "Server Started on %s" % FileManager.root
+
+	#Below here are functions that can be called by the user
 
 	def respond(self): #respond to arbitrary request
 
@@ -63,7 +70,61 @@ class Server:
 		ID = random.choice(FileManager.IDList(FileManager.getLCList()))
 		self.getLC(ID)
 
+	def getRawLC(self, ID):
+
+		fname = os.path.join(FileManager.LCDir, FileManager.getFileName(ID))
+		with open(fname,'rb') as f:
+			raw = f.read()
+		self.socket.send_pyobj(raw)
+		print "Sent raw data for %s" % ID
+
+	def getAllRawLC(self, *IDList): #get all the data for all IDs in the list
+
+		DataList = []
+		for ID in IDList:
+			fname = os.path.join(FileManager.LCDir, FileManager.getFileName(ID))
+			with open(fname,'rb') as f:
+				DataList.append(f.read())
+		self.socket.send_pyobj(DataList)
+		print "Sent all the data on disk"
+
 	#below here are server specific (sort of private) functions
+
+	def sync(self, server): #sync the LCDir of the server to another server
+
+		try:
+			context = zmq.Context()
+			socket = context.socket(zmq.REQ)
+			socket.LINGER = False
+			socket.connect(server)
+			
+		except zmq.ZMQError as e:
+			print e
+		else:
+			try:
+				socket.send(b"IDList\n")
+				if socket.poll(timeout = 1000, flags = zmq.POLLIN):
+					idList = socket.recv_pyobj()
+					print "Got List of ID numbers"
+				else:
+					idList = []
+					print "Sync Failed, could not get ID List"
+			except zmq.ZMQError as e:
+				print e
+			else:
+				IDList = " ".join(idList)
+				try:
+					socket.send(b"getAllRawLC\n%s" % IDList)
+					if socket.poll(timeout = 1200000, flags = zmq.POLLIN):
+						print "Got Data"
+						result = socket.recv_pyobj()
+						FileManager.updateLC(idList, result)
+						print "Sync Successful"
+					else:
+						print "Sync Failed, Timeout"
+				except zmq.ZMQError as e:
+					print e
+					print "Sync Failed, Server Error"
 
 	def ErrorMsg(self, *args):
 		
@@ -106,6 +167,10 @@ class Server:
 				print "Starting Server"
 				self.start()
 				return False
+		elif cmd.lower() in ['sync']:
+			server = raw_input("Server: ")
+			self.sync(server)
+	
 
 	def start(self):
 
@@ -135,10 +200,18 @@ class Server:
 
 class FileManager:
 
+	if "S82DATADIR" in os.environ:
+		root = os.environ['S82DATADIR']
+	else:
+		print "S82DATADIR not found"
+		root = ''
+		while not os.path.isdir(root):
+			root = raw_input("Root Dir: ")
+
 	Pattern = r"LC_(.*)_Calibrated\.csv"	
-	LCDir = "/home/rodot/KeplerS82/Data/LC/Calibrated"
-	PickleDir = "/home/rodot/KeplerS82/Pickles"
-	RedshiftFile = "/home/rodot/KeplerS82/Data/Stripe82ObjectList.dat"
+	LCDir = os.path.join(root,"Data/LC/Calibrated")
+	PickleDir = os.path.join(root,"/Pickles")
+	RedshiftFile = os.path.join(root,"Data/Stripe82ObjectList.dat")
 	zList = []
 	regex = re.compile(Pattern)
 	with open(RedshiftFile,'rb') as f:
@@ -188,6 +261,15 @@ class FileManager:
 		index = [i[0] for i in self.zList].index(ID) #1 is the index for the ID number
 		return self.zList[index][3] #3 is the index for redshift
 
+	@classmethod
+	def updateLC(self, IDList, dataList):
+	
+		for ID, data in zip(IDList, dataList):
+			filename = os.path.join(self.LCDir, ID.join(("LC_","_Calibrated.csv")))	
+			with open(filename,'w') as f:
+				f.write(data)
+
+	#below here manage the server files
 
 
 if __name__ == '__main__':
