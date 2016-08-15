@@ -25,7 +25,10 @@ class Server:
 		'argCount':self.getArgCount,
 		'ping': self.respond,
 		'getRawLC':self.getRawLC,
-		'getAllRawLC':self.getAllRawLC}
+		'getAllRawLC':self.getAllRawLC,
+		'getNearestLC':self.getNearestLC,
+		'getFileInfo':self.getFileInfo,
+		'getAllFileInfo':self.getAllFileInfo}
 	
 		print "Server Started on %s" % FileManager.root
 
@@ -59,6 +62,27 @@ class Server:
 		self.socket.send_pyobj(package)
 		print "Sent %s" % FileManager.getFileName(ID)
 
+	def getNearestLC(self, ID, tol):
+
+		tol = float(tol)
+		ra = float(ScienceManager.hmsToDeg(ID[:9]))
+		dec = float(ScienceManager.dmsToDeg(ID[9:]))
+		coords = FileManager.getCoordList()		
+		coords = zip(range(len(coords)), coords)
+		nearest = None
+		sep = 360
+		for i, (Ra, Dec) in coords:
+			dist = np.arccos(np.sin(dec)*np.sin(Dec)+np.cos(dec)*np.cos(Dec)*np.cos(ra - Ra))
+			if dist < tol:
+				if (dist < sep):
+					sep = dist
+					nearest = i
+		if nearest is not None:
+			ID = FileManager.IDList(FileManager.getLCList())[nearest]
+			self.getLC(ID)		
+		else:
+			raise IndexError("No objects in list within tolerance")
+
 	def getIDList(self):
 
 		idlist = FileManager.IDList(FileManager.getLCList())
@@ -88,10 +112,30 @@ class Server:
 		self.socket.send_pyobj(DataList)
 		print "Sent all the data on disk"
 
+	def getFileInfo(self, filename):
+
+		package = FileManager.getFileInfo(filename)
+		self.socket.send_pyobj(package)
+		print "Sent file information for %s" % ID
+
+	def getAllFileInfo(self):
+
+		
+		package = map(FileManager.getFileInfo, FileManager.getLCList())
+		self.socket.send_pyobj(package)
+		print "Sent information on all files"
+
 	#below here are server specific (sort of private) functions
 
 	def sync(self, server): #sync the LCDir of the server to another server
-
+		'''steps for the sync:
+		1. Get List of Files on remote server
+		2. Compare file to local files
+		2.a. Get files that do not exist on this server
+		2.b. Get files that have been updated less recently
+		3. sync files
+		4. update last updated time
+		'''
 		try:
 			context = zmq.Context()
 			socket = context.socket(zmq.REQ)
@@ -103,25 +147,41 @@ class Server:
 		else:
 			try:
 				socket.send(b"IDList\n")
-				if socket.poll(timeout = 1000, flags = zmq.POLLIN):
+				if socket.poll(timeout = 2000, flags = zmq.POLLIN):
 					idList = socket.recv_pyobj()
 					print "Got List of ID numbers"
 				else:
 					idList = []
 					print "Sync Failed, could not get ID List"
+				socket.send(b"getAllFileInfo\n")
+				if socket.poll(timeout = 10000, flags = zmq.POLLIN):
+					stats = socket.recv_pyobj()
+					print "Get File Information"
+				else:
+					print "Sync Failed, could not get Stats List"
 			except zmq.ZMQError as e:
 				print e
 			else:
+				localIDs = FileManager.IDList(FileManager.getLCList())
+				localStats = dict(zip(localIDs,map(FileManager.getFileInfo, FileManager.getLCList())))
+				stats = dict(zip(idList, stats))
+				matchIDs = list((set(localIDs) & set(idList)))
+				new = list(set(idList) - set(localIDs))
+				updates = [ID for ID in matchIDs if stats[ID].st_ctime > localStats[ID].st_ctime]			
+				idList = list(set(new)|set(updates))
+				print "About to sync %i files" % len(idList)
+				print "Please wait, this may take up to 20 minutes" 
 				IDList = " ".join(idList)
 				try:
-					socket.send(b"getAllRawLC\n%s" % IDList)
-					if socket.poll(timeout = 1200000, flags = zmq.POLLIN):
-						print "Got Data"
-						result = socket.recv_pyobj()
-						FileManager.updateLC(idList, result)
-						print "Sync Successful"
-					else:
-						print "Sync Failed, Timeout"
+					for i, ID in enumerate(idList):
+						socket.send(b"getRawLC\n%s" % ID)
+						if socket.poll(timeout = 5000, flags = zmq.POLLIN):
+							print "Got %s" % ID, "%i / %i" % (i, len(idList))
+							result = socket.recv_pyobj()
+							FileManager.updateLC([ID], [result])
+						else:
+							print "Timeout, Failed to get %s" & ID
+					print "Sync Complete"
 				except zmq.ZMQError as e:
 					print e
 					print "Sync Failed, Server Error"
@@ -256,10 +316,20 @@ class FileManager:
 		return self.getLCList()[self.IDList(self.getLCList()).index(ID)]
 
 	@classmethod
+	def getFileInfo(self, filename):
+		
+		return os.stat(os.path.join(self.LCDir,filename))
+
+	@classmethod
 	def getRedshift(self, ID):
 
 		index = [i[0] for i in self.zList].index(ID) #1 is the index for the ID number
 		return self.zList[index][3] #3 is the index for redshift
+
+	@classmethod
+	def getCoordList(self):
+
+		return map(lambda x: (float(ScienceManager.hmsToDeg(x[:9])), float(ScienceManager.dmsToDeg(x[9:]))), self.IDList(self.getLCList()))
 
 	@classmethod
 	def updateLC(self, IDList, dataList):
@@ -271,9 +341,51 @@ class FileManager:
 
 	#below here manage the server files
 
+class ScienceManager:
+
+	@classmethod
+	def degTohms(self, deg):
+	
+		deg = float(deg)	
+		h = deg/360.0*24
+		m = (h - int(h))*60
+		s = (m - int(m))*60
+		h = str(int(h)).zfill(2)
+		m = str(int(m)).zfill(2)
+		s = '.'.join((str(int(s)).zfill(2), str(int((s - int(s))*100)).zfill(2)))
+		return ''.join((h,m,s))
+
+	@classmethod
+	def degTodms(self, deg):
+		
+		deg = float(deg)
+		d = dec*(-1 if deg < 1 else 1)
+		m = (d - int(d))*60
+		s = (m - int(m))*60
+		d = str(int(d)).zfill(2)
+		m = str(int(m)).zfill(2)
+		s = '.'.join((str(int(s)).zfill(2), str(int((s - int(s))*100))[0]))
+		return ''.join((d,m,s))
+
+	@classmethod			
+	def dmsToDeg(self, dms):
+
+		d, m, s = map(float,(dms[:3], dms[3:5], dms[5:]))
+		if d > 0:
+			deg = d + m/60.0 + s/60.0/60.0
+		else:
+			deg = d - m/60.0 - s/60.0/60.0
+		return str(deg)
+
+	@classmethod
+	def hmsToDeg(self, hms):
+		h,m,s = map(float, (hms[:2], hms[2:4], hms[4:]))
+		deg = h/24.0*360.0 + m/24.0*360.0/60.0 + s/24.0*360.0/60.0/60.0
+		return str(deg)
+
 
 if __name__ == '__main__':
 
 	S = Server()
 	S.start()
-
+	
