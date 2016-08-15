@@ -180,12 +180,31 @@ returns:
 	IDList (list): List of strings of SDSS Objects names on disk
 """)
 
-
+getNearestLC = createFunction('getNearestLC',
+"""
+args:
+	ID (str): SDSS J200 name
+	tol (float): matching tolerance in degrees
+returns:
+	filename, reshift, data (tuple):
+		see above
+""")
 
 if __name__ == '__main__':
 	import sys
 	if len(sys.argv) == 1:
 		print "Test"
+	if sys.argv[1] == '--check':
+		for name in sys.argv[2:]:
+			try:
+				getNearestLC(name, 2/60.0/60.0)
+			except SDSSError as e:
+				if 'No objects in list' in e.message:
+					print "LC does not exist in data base", 0, name
+			except IndexError as e:
+				print "No File Specified"
+			else:
+				print "LC does exist in database     ", 1, name
 	elif sys.argv[1] == '--rand':
 		print getRandLC()	
 	elif sys.argv[1] == '--list':
